@@ -1,0 +1,23 @@
+#root {
+	-fx-background-color: #333333;
+	-fx-padding: 1px;
+}
+
+#GhostmindLogo {
+    -fx-font-size: 1.5em;
+    -fx-text-fill: white;
+}
+
+#Title {
+    -fx-font-size: 1.7em;
+    -fx-text-fill: white;
+}
+
+#Subtitle {
+    -fx-font-size: 1.1em;
+    -fx-text-fill: #aaaaaa;
+}
+
+#WhiteText {
+    -fx-text-fill: #dddddd;
+}

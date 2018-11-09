@@ -1,5 +1,7 @@
 package com.archmage.ghostmind.model
 
+import java.net.HttpCookie
+
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
@@ -13,7 +15,9 @@ object UrbanDeadModel {
   val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
   val browser = JsoupBrowser()
 
-  val contactsBuffer = ObservableBuffer[Contact]()
+  val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
+
+  var cookies: Option[Seq[HttpCookie]] = None
 
   def loadContactsList(username: String, password: String): HttpResponse[String] = {
     request(s"$baseUrl/${contactsUrl.format(username.replaceAll(" ", "%20"), password)}")
@@ -41,10 +45,12 @@ object UrbanDeadModel {
   def request(string: String): HttpResponse[String] = {
     val request = Http(string)
     request.header("User-Agent", useragent)
+    if(cookies.isDefined) request.cookies(cookies.get)
     val response = request.asString
     println(request)
     println(s"response: ${response.code}")
     if(response.isError) response.throwError
+    cookies = Some(response.cookies)
     response
   }
 }

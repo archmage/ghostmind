@@ -1,17 +1,18 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.UrbanDeadModel
-import javafx.event.EventHandler
-import javafx.event.ActionEvent
-import scalafx.geometry.Pos
-import scalafx.scene.control.{Button, Label, PasswordField, TextField}
+import javafx.event.{ActionEvent, EventHandler}
+import scalafx.geometry.{Insets, Pos}
+import scalafx.scene.control.{Button, Label, PasswordField}
 import scalafx.scene.layout.HBox
 
-class LoginBar extends HBox {
+class LoginBox extends HBox {
 
-  val showPromptTextStyle = "-fx-prompt-text-fill: derive(-fx-control-inner-background,-30%);"
+  alignment = Pos.CenterRight
+  spacing = 10
+  padding = Insets(10)
 
-  val usernameField = new TextField
+  val usernameField = new GhostField
   val passwordField = new PasswordField
   val loginLogoutButton = new Button
   val loggedInAsLabel = new Label
@@ -19,28 +20,23 @@ class LoginBar extends HBox {
   val loginClosure: EventHandler[ActionEvent] = _ => login()
   val logoutClosure: EventHandler[ActionEvent] = _ => logout()
 
-  alignment = Pos.CenterRight
-  spacing = 10
-
   usernameField.promptText = "username"
   passwordField.promptText = "password"
   loginLogoutButton.text = "login"
-
-  usernameField.style = showPromptTextStyle
-  passwordField.style = showPromptTextStyle
+  passwordField.style = GhostField.showPromptTextStyle
 
   usernameField.onAction = loginClosure
   passwordField.onAction = loginClosure
   loginLogoutButton.onAction = loginClosure
 
-  this.getChildren.addAll(usernameField, passwordField, loginLogoutButton)
+  children = List(usernameField, passwordField, loginLogoutButton)
 
   def login(): Unit = {
     val username = usernameField.text.value.trim
     val password = passwordField.text.value.trim
 
     if(username.isEmpty || password.isEmpty) return
-    this.getChildren.clear()
+
     new Thread(() => {
       val contactsListResponse = UrbanDeadModel.loadContactsList(username, password)
       UrbanDeadModel.parseContactList(contactsListResponse.body)
@@ -49,11 +45,10 @@ class LoginBar extends HBox {
     loggedInAsLabel.text = s"logged in as $username"
     loginLogoutButton.text = "logout"
     loginLogoutButton.onAction = logoutClosure
-    this.getChildren.addAll(loggedInAsLabel, loginLogoutButton)
+    children = List(loggedInAsLabel, loginLogoutButton)
   }
 
   def logout(): Unit = {
-    this.getChildren.clear()
     loginLogoutButton.text = "login"
     loginLogoutButton.onAction = loginClosure
     this.getChildren.addAll(usernameField, passwordField, loginLogoutButton)
