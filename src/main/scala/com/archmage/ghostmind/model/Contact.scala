@@ -1,5 +1,9 @@
 package com.archmage.ghostmind.model
 
+object Contact {
+
+}
+
 case class Contact(
   name: String,
   group: String,

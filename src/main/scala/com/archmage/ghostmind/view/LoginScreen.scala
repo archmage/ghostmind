@@ -1,11 +1,11 @@
 package com.archmage.ghostmind.view
 
-import scalafx.geometry.{Insets, Pos}
+import scalafx.geometry.Pos
 import scalafx.scene.control.Label
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.VBox
 
-class LoginScreen extends VBox {
+class LoginScreen(onSubmit: (String, String) => Unit, completion: () => Unit) extends VBox {
 
   alignment = Pos.Center
   spacing = 10
@@ -16,12 +16,12 @@ class LoginScreen extends VBox {
     fitHeight = 80
   }
 
-  val title: Label = new Label {
+  val title = new Label {
     id = "GhostmindLogo"
     text = "ghostmind"
   }
 
-  val loginVBox = new LoginVBox
+  val loginVBox = new LoginVBox(onSubmit, completion)
 
   children = List(icon, title, loginVBox)
 }

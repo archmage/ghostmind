@@ -1,30 +1,44 @@
 package com.archmage.ghostmind.model
 
-import java.net.HttpCookie
-
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import scalafx.collections.ObservableBuffer
-import scalaj.http.{Http, HttpResponse}
 
 object UrbanDeadModel {
 
   val baseUrl = "http://urbandead.com"
   val contactsUrl = "contacts.cgi?username=%1$s&password=%2$s"
+  val skillsUrl = "skills.cgi?"
+  val mapUrl = "map.cgi"
   val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
-  val browser = JsoupBrowser()
+
+  var activeSession: Option[CharacterSession] = None
 
   val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
 
-  var cookies: Option[Seq[HttpCookie]] = None
-
-  def loadContactsList(username: String, password: String): HttpResponse[String] = {
-    request(s"$baseUrl/${contactsUrl.format(username.replaceAll(" ", "%20"), password)}")
+  def loginRequest(username: String, password: String): Boolean = {
+    if(activeSession.isDefined) return false
+    val session = new CharacterSession(username, password)
+    activeSession = Some(session)
+    try {
+      val contactsDoc = request(s"$baseUrl/${contactsUrl.format(username.replaceAll(" ", "%20"), password)}")
+      // now logged in
+      println(session.browser.cookies(s"$baseUrl/${contactsUrl.format(username.replaceAll(" ", "%20"), password)}"))
+      session.contacts = Some(parseContactList(contactsDoc.get))
+      val skillsDoc = request(s"$baseUrl/$skillsUrl")
+      session.skills = Some(parseSkills(skillsDoc.get))
+      true
+    }
+    catch {
+      case e: Exception => {
+        e.printStackTrace()
+        false
+      }
+    }
   }
 
-  def parseContactList(body: String): List[Contact] = {
-    val doc = browser.parseString(body)
+  def parseContactList(doc: JsoupDocument): List[Contact] = {
     val contactRows = (doc >> elementList("tr")).tail.dropRight(1)
 
     val contacts = contactRows.map { row =>
@@ -41,16 +55,25 @@ object UrbanDeadModel {
     contacts
   }
 
-  // core request function that simplifies header assignment and response formatting
-  def request(string: String): HttpResponse[String] = {
-    val request = Http(string)
-    request.header("User-Agent", useragent)
-    if(cookies.isDefined) request.cookies(cookies.get)
-    val response = request.asString
-    println(request)
-    println(s"response: ${response.code}")
-    if(response.isError) response.throwError
-    cookies = Some(response.cookies)
-    response
+  def parseSkills(doc: JsoupDocument): List[String] = {
+    return List("Skill 1", "Skill 2", "Skill 3")
+  }
+
+  def parseMap(doc: JsoupDocument): Option[MapState] = {
+    if(activeSession.isEmpty) return None
+
+    val map = activeSession.get.browser.get(s"$baseUrl/$mapUrl")
+    val gt = (map >> elementList(".gt")).head
+
+    println(gt)
+    Some(MapState(60, 50, 88))
+  }
+
+  def request(string: String): Option[JsoupDocument] = {
+    if(activeSession.isEmpty) return None
+
+    val response = activeSession.get.browser.get(string)
+    println(response.title)
+    Some(response)
   }
 }

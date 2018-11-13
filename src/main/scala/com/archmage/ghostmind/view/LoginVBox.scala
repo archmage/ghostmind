@@ -1,12 +1,12 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.UrbanDeadModel
 import javafx.event.{ActionEvent, EventHandler}
+import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.{Button, Label, PasswordField}
-import scalafx.scene.layout.{Priority, VBox}
+import scalafx.scene.control.{Button, Label, PasswordField, ProgressIndicator}
+import scalafx.scene.layout.VBox
 
-class LoginVBox extends VBox {
+class LoginVBox(onSubmit: (String, String) => Unit, completion: () => Unit) extends VBox {
 
   alignment = Pos.Center
   spacing = 10
@@ -35,6 +35,7 @@ class LoginVBox extends VBox {
   val loggedInAsLabel = new Label {
     id = "WhiteText"
   }
+  val indicator = new ProgressIndicator()
 
   children = List(usernameField, passwordField, loginLogoutButton)
 
@@ -44,15 +45,19 @@ class LoginVBox extends VBox {
 
     if(username.isEmpty || password.isEmpty) return
 
-    new Thread(() => {
-      val contactsListResponse = UrbanDeadModel.loadContactsList(username, password)
-      UrbanDeadModel.parseContactList(contactsListResponse.body)
-    }).run()
+    children = indicator
 
-    loggedInAsLabel.text = s"logged in as $username"
-    loginLogoutButton.text = "logout"
-    loginLogoutButton.onAction = logoutClosure
-    children = List(loggedInAsLabel, loginLogoutButton)
+    new Thread(() => {
+      onSubmit.apply(username, password)
+
+      Platform.runLater {
+        loggedInAsLabel.text = s"logged in as $username"
+        loginLogoutButton.text = "logout"
+        loginLogoutButton.onAction = logoutClosure
+        children = List(loggedInAsLabel, loginLogoutButton)
+        completion.apply()
+      }
+    }).start()
   }
 
   def logout(): Unit = {

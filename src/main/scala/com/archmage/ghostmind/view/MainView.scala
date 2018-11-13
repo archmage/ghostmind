@@ -20,7 +20,7 @@ object MainView extends JFXApp {
     title = titleText
     icons +=
     new Image(getClass.getResourceAsStream("assets/ghost.png"))
-    width = 800
+    width = 1024
     height = 600
     scene = new Scene {
       stylesheets += this.getClass.getResource("assets/style.css").toExternalForm
