@@ -16,6 +16,8 @@ class CharacterBox(imageName: String, contact: Option[Contact] = None) extends V
   spacing = 10
   padding = Insets(5)
 
+  var online: Boolean = false
+
   val hoverBackground =
     new Background(Array(new BackgroundFill(Color.DarkCyan, CornerRadii.Empty, Insets.Empty)))
 
@@ -52,7 +54,17 @@ class CharacterBox(imageName: String, contact: Option[Contact] = None) extends V
 
   val status = new Label {
     id = "CharacterBoxStatusText"
-    text = "ONLINE"
+    style = "-fx-text-fill: #ff0000;"
+    text = "OFFLINE"
+    text.onChange { (_, _, _) => updateStatus() }
+  }
+
+  def updateStatus(): Unit = {
+    status.text.value match {
+      case "OFFLINE" => status.style = "-fx-text-fill: #ff0000;"
+      case "CONNECTING" => status.style = "-fx-text-fill: #dddd00;"
+      case "ONLINE" => status.style = "-fx-text-fill: #00ff00;"
+    }
   }
 
   children = List(avatar, name, details, status)

@@ -3,6 +3,10 @@
 	-fx-padding: 1px;
 }
 
+#StatusBar {
+    -fx-background-color: #2a2a2a;
+}
+
 #GhostmindLogo {
     -fx-font-size: 1.5em;
     -fx-text-fill: white;
@@ -24,7 +28,6 @@
 
 #CharacterBoxStatusText {
     -fx-font-weight: bold;
-    -fx-text-fill: #00ff00;
 }
 
 .table-view {

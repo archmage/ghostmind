@@ -5,8 +5,10 @@ import scalafx.scene.layout.{ColumnConstraints, GridPane, RowConstraints}
 import scalafx.scene.shape.Rectangle
 
 object MapGridView {
-  val rowConstraint: RowConstraints = new RowConstraints { prefHeight = 10 }
-  val columnConstraint: ColumnConstraints = new ColumnConstraints { prefWidth = 10 }
+  val cellSize = 11
+
+  val rowConstraint: RowConstraints = new RowConstraints { prefHeight = MapGridView.cellSize + 1 }
+  val columnConstraint: ColumnConstraints = new ColumnConstraints { prefWidth = MapGridView.cellSize + 1 }
 }
 
 class MapGridView extends GridPane {
@@ -16,8 +18,8 @@ class MapGridView extends GridPane {
   for(x <- 0 to 9) {
       for (y <- 0 to 9) {
         val cell = new Rectangle {
-          width = 9
-          height = 9
+          width = MapGridView.cellSize
+          height = MapGridView.cellSize
           fill <== when(hover) choose Colors.green otherwise Colors.red
         }
 //        val cell = new Label {
