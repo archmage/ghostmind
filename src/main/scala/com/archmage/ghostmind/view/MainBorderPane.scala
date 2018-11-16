@@ -18,7 +18,7 @@ class MainBorderPane extends BorderPane {
   val skillsStackPane = new StackPane
 
   // actual interface elements
-  val loginScreen = new LoginScreen(UrbanDeadModel.loginRequest, onLoginCompletion)
+  val logoBox = new LogoBox
   val charactersPane = new CharactersPane
   var sessionBar: CharacterSessionBar = _
   val skillsLabel = new Label {
@@ -40,7 +40,7 @@ class MainBorderPane extends BorderPane {
   )
 
   // tweaking
-  centreVBox.children = loginScreen
+  centreVBox.children = logoBox
   centreVBox.alignment = Pos.Center
   centreVBox.spacing = 10
 
@@ -48,6 +48,7 @@ class MainBorderPane extends BorderPane {
   center = centreVBox
   bottom = statusBar
 
+  // view helpers
   def tab(title: String, contentNode: Node): Tab = {
     new Tab {
       text = title
@@ -55,44 +56,19 @@ class MainBorderPane extends BorderPane {
     }
   }
 
-  def onLoginCompletion(): Unit = {
-    val characterBox = new CharacterBox(s"${UrbanDeadModel.activeSession.get.username}.png")
-    characterBox.name.text = UrbanDeadModel.activeSession.get.username
-    characterBox.onMouseReleased = _ => startSession(UrbanDeadModel.activeSession.get)
-    charactersPane.children = characterBox
-
-    centreVBox.children = List(loginScreen, charactersPane)
-  }
-
-  def startSession(session: CharacterSession): Unit = {
-    UrbanDeadModel.setActiveSession(session)
-    left = leftTabPane
-    right = rightTabPane
-
-    sessionBar = new CharacterSessionBar(UrbanDeadModel.activeSession.get)
-    top = sessionBar
-  }
+  // --- logic ---
 
   // init stuff
-  UrbanDeadModel.loadCharacters()
-  charactersPane.children = UrbanDeadModel.sessions.map { session =>
-    val characterBox = new CharacterBox(s"${session.username}.png")
-    characterBox.name.text = session.username
-    characterBox.onMouseReleased = _ => {
-      characterBox.onMouseReleased = _ => ()
-      characterBox.status.text = "CONNECTING"
-      new Thread(() => {
-        UrbanDeadModel.loginExistingSession(session)
-        Platform.runLater(() => {
-          characterBox.status.text = "ONLINE"
-          characterBox.online = true
-          characterBox.onMouseReleased = _ => startSession(session)
-        })
-      }).start()
+  def init(): Unit = {
+    UrbanDeadModel.loadCharacters()
+    charactersPane.children = UrbanDeadModel.sessions.map { session =>
+      new CharacterBox(Some(session))
     }
-    characterBox
+    if (charactersPane.children.size() < 3) {
+      charactersPane.children.add(new CharacterBox)
+    }
+    centreVBox.children = List(logoBox, charactersPane)
   }
-  if(!charactersPane.children.isEmpty) {
-    centreVBox.children = List(loginScreen, charactersPane)
-  }
+
+  init()
 }

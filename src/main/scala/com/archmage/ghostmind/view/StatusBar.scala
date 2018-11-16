@@ -7,7 +7,7 @@ import scalafx.scene.control.Label
 import scalafx.scene.layout.HBox
 
 object StatusBar {
-  var status: StringProperty = new StringProperty("Status bar.")
+  var status: StringProperty = new StringProperty("a ghost approaches the terminal")
 
   def status_=(status: String): Unit = {
     Platform.runLater(() => StatusBar.status.value = status)

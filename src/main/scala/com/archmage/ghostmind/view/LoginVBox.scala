@@ -9,8 +9,8 @@ import scalafx.scene.layout.VBox
 class LoginVBox(onSubmit: (String, String) => Unit, completion: () => Unit) extends VBox {
 
   alignment = Pos.Center
-  spacing = 10
   padding = Insets(10)
+  spacing = 10
 
   val loginClosure: EventHandler[ActionEvent] = _ => login()
   val logoutClosure: EventHandler[ActionEvent] = _ => logout()

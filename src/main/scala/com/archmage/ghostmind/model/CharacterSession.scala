@@ -1,10 +1,12 @@
 package com.archmage.ghostmind.model
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import scalafx.beans.property.ObjectProperty
 
 class CharacterSession(val username: String, val password: String) {
 
-  val browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
+  var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
+  var state: ObjectProperty[SessionState] = ObjectProperty(Offline())
 
   var hits: Int = 0
 
@@ -13,3 +15,8 @@ class CharacterSession(val username: String, val password: String) {
 
   var mapState: Option[MapState] = None
 }
+
+sealed trait SessionState
+case class Offline() extends SessionState
+case class Connecting() extends SessionState
+case class Online() extends SessionState

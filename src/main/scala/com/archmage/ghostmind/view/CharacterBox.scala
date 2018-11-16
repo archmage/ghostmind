@@ -1,71 +1,130 @@
 package com.archmage.ghostmind.view
 
+import com.archmage.ghostmind.model._
 import javafx.scene.{layout => jfxsl}
 import scalafx.Includes._
-import com.archmage.ghostmind.model.Contact
+import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
 import scalafx.scene.image.{Image, ImageView}
-import scalafx.scene.layout.{Background, BackgroundFill, CornerRadii, VBox}
-import scalafx.scene.paint.Color
+import scalafx.scene.layout.VBox
 import scalafx.scene.text.TextAlignment
 
-class CharacterBox(imageName: String, contact: Option[Contact] = None) extends VBox {
+/**
+  * this class is a bit of a big one
+  */
+class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
 
-  alignment = Pos.TopCenter
-  spacing = 10
+  alignment = Pos.Center
   padding = Insets(5)
+  spacing = 10
+  prefWidth = 180
 
-  var online: Boolean = false
+  background <== when(hover) choose Colors.hoverBackground otherwise jfxsl.Background.EMPTY
 
-  val hoverBackground =
-    new Background(Array(new BackgroundFill(Color.DarkCyan, CornerRadii.Empty, Insets.Empty)))
+  // session absent
+  val plusIcon = new ImageView{
+    image = new Image(getClass.getResourceAsStream("assets/plus.png"))
+    fitWidth = 50
+    fitHeight = 50
+  }
+  val addCharacterLabel = new Label {
+    id = "Subtitle"
+    text = "add a character"
+  }
+  val loginBox = new LoginVBox(login, loginComplete)
 
-  background <== when(hover) choose hoverBackground otherwise jfxsl.Background.EMPTY
+  // session present
+  val nameString = if(session.isDefined) session.get.username else "Unknown"
+  val levelString = "???"
+  val classString = "Mystery"
+  val groupString = "[unknown group]"
 
   val avatar = new ImageView {
-    try {
-      image = new Image(getClass.getResourceAsStream(s"assets/$imageName"))
-    }
-    catch {
-      case npe: NullPointerException =>
-        image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
-    }
     fitWidth = 90
     fitHeight = 90
   }
-
-  val nameString = if(contact.isDefined) contact.get.name else "Unknown"
-  val levelString = if(contact.isDefined) contact.get.level else "???"
-  val classString = if(contact.isDefined) contact.get.currentClass else "Mystery"
-  val groupString = if(contact.isDefined) contact.get.group else "[unknown group]"
-
   val name = new Label {
     id = "Title"
     text = nameString
   }
-
   val details = new Label {
     id = "Subtitle"
     text = s"the Level $levelString $classString\n$groupString"
     padding = Insets(-10, 0, 0, 0)
     textAlignment = TextAlignment.Center
   }
-
   val status = new Label {
     id = "CharacterBoxStatusText"
     style = "-fx-text-fill: #ff0000;"
     text = "OFFLINE"
-    text.onChange { (_, _, _) => updateStatus() }
+    text.onChange { (_, _, _) => update() }
   }
 
-  def updateStatus(): Unit = {
-    status.text.value match {
-      case "OFFLINE" => status.style = "-fx-text-fill: #ff0000;"
-      case "CONNECTING" => status.style = "-fx-text-fill: #dddd00;"
-      case "ONLINE" => status.style = "-fx-text-fill: #00ff00;"
+  def update(): Unit = {
+    Platform.runLater(() => {
+      if(session.isEmpty) {
+        style =
+          """-fx-border-style: segments(12, 6);
+            |-fx-border-color: grey;
+            |-fx-border-width: 2px;
+          """.stripMargin
+        children = List(plusIcon, addCharacterLabel)
+        onMouseReleased = _ => {
+          children = loginBox
+        }
+      }
+      else {
+        session.get.state.onChange { (_, _, _) => update() }
+        style = ""
+        try {
+          avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.get.username}.png"))
+        }
+        catch {
+          case _: Exception =>
+            avatar.image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
+        }
+        name.text = session.get.username
+        status.text = session.get.state.value.toString.dropRight(2).toUpperCase
+        session.get.state.value match {
+          case Offline() => status.style = "-fx-text-fill: #ff0000;"
+          case Connecting() => status.style = "-fx-text-fill: #dddd00;"
+          case Online() => status.style = "-fx-text-fill: #00ff00;"
+        }
+        children = List(avatar, name, details, status)
+        onMouseReleased = _ => {
+          session.get.state.value match {
+            case Offline() => {
+              new Thread(() => login(session.get.username, session.get.password)).start()
+            }
+            case Connecting() => ()
+            case Online() => startSession()
+          }
+        }
+      }
+    })
+  }
+
+  def login(username: String, password: String): Unit = {
+    if(session.isEmpty) {
+      session = Some(new CharacterSession(username, password))
+      update()
+    }
+    val result = UrbanDeadModel.loginExistingSession(session.get)
+    if(!result) {
+      children = loginBox
     }
   }
 
-  children = List(avatar, name, details, status)
+  def loginComplete(): Unit = {
+    session.get.state.value = Online()
+    update()
+    onMouseReleased = _ => startSession()
+  }
+
+  def startSession(): Unit = {
+    println("woohoo we did it")
+  }
+
+  update()
 }

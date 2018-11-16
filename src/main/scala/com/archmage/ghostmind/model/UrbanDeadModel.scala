@@ -3,14 +3,14 @@ package com.archmage.ghostmind.model
 import java.io.{File, PrintWriter}
 
 import com.archmage.ghostmind.view.StatusBar
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
-import scalafx.collections.ObservableBuffer
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
+import scalafx.application.Platform
+import scalafx.collections.ObservableBuffer
 
 import scala.io.Source
 
@@ -24,30 +24,23 @@ object UrbanDeadModel {
   val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
 
   var sessions = Set[CharacterSession]()
-  var activeSession: Option[CharacterSession] = None
   val charactersFile = "characters.json"
 
   val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
 
-  def request(string: String, broser: JsoupBrowser = activeSession.get.browser): Option[JsoupDocument] = {
-    if(activeSession.isEmpty) return None
-
-    val response = activeSession.get.browser.get(string)
+  def request(string: String, session: CharacterSession): Option[JsoupDocument] = {
+    val response = session.browser.get(string)
     println(response.title)
     Some(response)
   }
 
-  def setActiveSession(session: CharacterSession): Unit = {
-    if(!sessions.contains(session)) sessions += session
-    activeSession = Some(session)
-  }
-
   def loadCharacters(): Unit = {
-    val stream = Source.fromFile(charactersFile)
+    val file = new File(charactersFile)
+    if(!file.exists()) return
+    val stream = Source.fromFile(file)
 //    sessions = parse(stream.getLines.mkString).extract[Set[CharacterSession]]
     sessions = (parse(stream.getLines.mkString) \\ "characters").extract[Set[CharacterSession]]
     stream.close()
-
   }
 
   def saveCharacters(): Unit = {
@@ -57,7 +50,7 @@ object UrbanDeadModel {
     pw.close()
   }
 
-  def parseContactList(doc: JsoupDocument): List[Contact] = {
+  def parseContactList(doc: JsoupDocument, session: CharacterSession): List[Contact] = {
     val contactRows = (doc >> elementList("tr")).tail.dropRight(1)
 
     val contacts = contactRows.map { row =>
@@ -70,6 +63,7 @@ object UrbanDeadModel {
 
     contactsBuffer.clear()
     contactsBuffer ++= contacts
+    session.contacts = Some(contacts)
 
     contacts
   }
@@ -78,10 +72,8 @@ object UrbanDeadModel {
     List("Skill 1", "Skill 2", "Skill 3")
   }
 
-  def parseMap(doc: JsoupDocument): Option[MapState] = {
-    if(activeSession.isEmpty) return None
-
-    val map = activeSession.get.browser.get(s"$baseUrl/$mapUrl")
+  def parseMap(doc: JsoupDocument, session: CharacterSession): Option[MapState] = {
+    val map = session.browser.get(s"$baseUrl/$mapUrl")
     val gt = (map >> elementList(".gt")).head
 
     println(gt)
@@ -89,59 +81,44 @@ object UrbanDeadModel {
   }
 
   def loginExistingSession(session: CharacterSession): Boolean = {
-    if(activeSession.isEmpty) activeSession = Some(session)
-    StatusBar.status = s"""Logging in as "${session.username}"..."""
+    if(session.state.value != Offline()) return true // already in progress / done!
+
+    Platform.runLater(() => {
+      session.state.value = Connecting()
+    })
+    StatusBar.status = s"""logging in as "${session.username}"..."""
     try {
       val contactsDoc = request(s"$baseUrl/${
-        contactsUrl.format(session.username.replaceAll(" ", "%20"), session.password)}", session.browser)
+        contactsUrl.format(session.username.replaceAll(" ", "%20"), session.password)}", session)
 
       // now logged in
-      StatusBar.status = "Request successful. Organising sessions..."
 
       // do some database dumping here?
-      setActiveSession(session)
+      sessions += session
       saveCharacters()
 
-      StatusBar.status = "Loading contacts..."
-      session.contacts = Some(parseContactList(contactsDoc.get))
+      StatusBar.status = "loading contacts..."
+      session.contacts = Some(parseContactList(contactsDoc.get, session))
 
-      StatusBar.status = "Loading skills..."
-      val skillsDoc = request(s"$baseUrl/$skillsUrl")
+      StatusBar.status = "loading skills..."
+      val skillsDoc = request(s"$baseUrl/$skillsUrl", session)
       session.skills = Some(parseSkills(skillsDoc.get))
 
-      StatusBar.status = s"""Logged in as "${session.username}"."""
+      Platform.runLater(() => {
+        session.state.value = Online()
+      })
+      StatusBar.status = s"""logged in as "${session.username}""""
       true
     }
     catch {
-      case e: Exception => {
+      case e: Exception =>
         e.printStackTrace()
         false
-      }
     }
   }
 
   def loginRequest(username: String, password: String): Boolean = {
-    if(activeSession.isDefined) return false
     val session = new CharacterSession(username, password)
-    try {
-      val contactsDoc = request(s"$baseUrl/${contactsUrl.format(username.replaceAll(" ", "%20"), password)}")
-      // now logged in
-
-      // do some database dumping here?
-      setActiveSession(session)
-      saveCharacters()
-
-      session.contacts = Some(parseContactList(contactsDoc.get))
-      val skillsDoc = request(s"$baseUrl/$skillsUrl")
-      session.skills = Some(parseSkills(skillsDoc.get))
-      true
-    }
-    catch {
-      case e: Exception => {
-        e.printStackTrace()
-        false
-      }
-    }
+    loginExistingSession(session)
   }
-
 }
