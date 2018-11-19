@@ -44,10 +44,6 @@ class MainBorderPane extends BorderPane {
   centreVBox.alignment = Pos.Center
   centreVBox.spacing = 10
 
-  // placement
-  center = centreVBox
-  bottom = statusBar
-
   // view helpers
   def tab(title: String, contentNode: Node): Tab = {
     new Tab {
@@ -58,16 +54,42 @@ class MainBorderPane extends BorderPane {
 
   // --- logic ---
 
+  // change state
+  def modelStateChanged(): Unit = {
+    Platform.runLater(() => {
+      UIModel.state.value match {
+        case Characters() =>
+          top = null
+          left = null
+          right = null
+          center = centreVBox
+          bottom = statusBar
+        case Main() =>
+          sessionBar = new CharacterSessionBar(UrbanDeadModel.activeSession.get)
+
+          top = sessionBar
+          left = leftTabPane
+          right = rightTabPane
+          center = null
+          bottom = statusBar
+      }
+    })
+  }
+
   // init stuff
   def init(): Unit = {
     UrbanDeadModel.loadCharacters()
     charactersPane.children = UrbanDeadModel.sessions.map { session =>
       new CharacterBox(Some(session))
     }
-    if (charactersPane.children.size() < 3) {
+    for(_ <- charactersPane.children.size() + 1 to 3)
       charactersPane.children.add(new CharacterBox)
-    }
+
     centreVBox.children = List(logoBox, charactersPane)
+
+    UIModel.state.onChange { (_, _, _) => modelStateChanged()}
+
+    modelStateChanged()
   }
 
   init()

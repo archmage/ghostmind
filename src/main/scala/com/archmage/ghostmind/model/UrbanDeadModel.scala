@@ -24,6 +24,7 @@ object UrbanDeadModel {
   val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
 
   var sessions = Set[CharacterSession]()
+  var activeSession: Option[CharacterSession] = None
   val charactersFile = "characters.json"
 
   val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
@@ -38,13 +39,19 @@ object UrbanDeadModel {
     val file = new File(charactersFile)
     if(!file.exists()) return
     val stream = Source.fromFile(file)
-//    sessions = parse(stream.getLines.mkString).extract[Set[CharacterSession]]
-    sessions = (parse(stream.getLines.mkString) \\ "characters").extract[Set[CharacterSession]]
+    val string = stream.getLines.mkString
+    if(!string.isEmpty) {
+      val parsed = parse(string)
+      val characters = parsed \\ "characters"
+      val extracted = characters.extract[Set[PersistentSession]]
+      val mapped = extracted.map(_.decodePassword())
+      sessions = mapped
+    }
     stream.close()
   }
 
   def saveCharacters(): Unit = {
-    val charactersJson = write(sessions)
+    val charactersJson = write(sessions.map(_.encodePassword()))
     val pw = new PrintWriter(new File(charactersFile))
     pw.write(s"""{"characters":$charactersJson}""")
     pw.close()
@@ -118,7 +125,7 @@ object UrbanDeadModel {
   }
 
   def loginRequest(username: String, password: String): Boolean = {
-    val session = new CharacterSession(username, password)
+    val session = CharacterSession(username, password)
     loginExistingSession(session)
   }
 }

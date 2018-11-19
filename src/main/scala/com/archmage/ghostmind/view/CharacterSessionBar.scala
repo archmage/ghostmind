@@ -50,6 +50,7 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
 
   val characterButton = new Button {
     text = "Characters"
+    onMouseReleased = _ => UIModel.state = Characters()
   }
 
   children = List(avatar, nameLabel, levelLabel, hpLabel, hpBar, growRegion, characterButton)

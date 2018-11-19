@@ -5,22 +5,20 @@ import javafx.scene.{layout => jfxsl}
 import scalafx.Includes._
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.Label
+import scalafx.scene.control.{Button, Label}
 import scalafx.scene.image.{Image, ImageView}
-import scalafx.scene.layout.VBox
+import scalafx.scene.layout._
 import scalafx.scene.text.TextAlignment
 
-/**
-  * this class is a bit of a big one
-  */
 class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
 
   alignment = Pos.Center
   padding = Insets(5)
   spacing = 10
   prefWidth = 180
+  prefHeight = 202
 
-  background <== when(hover) choose Colors.hoverBackground otherwise jfxsl.Background.EMPTY
+  background <== when(hover) choose Colors.hoverBackground otherwise Colors.normalBackground
 
   // session absent
   val plusIcon = new ImageView{
@@ -43,6 +41,21 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
   val avatar = new ImageView {
     fitWidth = 90
     fitHeight = 90
+  }
+  val mailLabel = new Label {
+    // turn this into a stacked image and label combo
+//    id = "WhiteText"
+//    text = "(0)"
+  }
+  val deleteButton = new Button {
+    text = "X"
+  }
+  val topStackPane = new StackPane {
+    alignment = Pos.TopCenter
+    children = List(avatar, new HBox {
+        children = List(mailLabel, new Region { hgrow = Priority.Always }, deleteButton)
+      }
+    )
   }
   val name = new Label {
     id = "Title"
@@ -76,7 +89,6 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
       }
       else {
         session.get.state.onChange { (_, _, _) => update() }
-        style = ""
         try {
           avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.get.username}.png"))
         }
@@ -91,12 +103,11 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
           case Connecting() => status.style = "-fx-text-fill: #dddd00;"
           case Online() => status.style = "-fx-text-fill: #00ff00;"
         }
-        children = List(avatar, name, details, status)
+        children = List(topStackPane, name, details, status)
         onMouseReleased = _ => {
           session.get.state.value match {
-            case Offline() => {
+            case Offline() =>
               new Thread(() => login(session.get.username, session.get.password)).start()
-            }
             case Connecting() => ()
             case Online() => startSession()
           }
@@ -107,7 +118,7 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
 
   def login(username: String, password: String): Unit = {
     if(session.isEmpty) {
-      session = Some(new CharacterSession(username, password))
+      session = Some(CharacterSession(username, password))
       update()
     }
     val result = UrbanDeadModel.loginExistingSession(session.get)
@@ -119,11 +130,13 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
   def loginComplete(): Unit = {
     session.get.state.value = Online()
     update()
+
     onMouseReleased = _ => startSession()
   }
 
   def startSession(): Unit = {
-    println("woohoo we did it")
+    UrbanDeadModel.activeSession = session
+    UIModel.state = Main()
   }
 
   update()
