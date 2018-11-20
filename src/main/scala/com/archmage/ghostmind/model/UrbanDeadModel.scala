@@ -11,8 +11,8 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
 import scalafx.application.Platform
 import scalafx.collections.ObservableBuffer
-import scala.collection.mutable.Set
 
+import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 object UrbanDeadModel {
@@ -24,7 +24,7 @@ object UrbanDeadModel {
   val mapUrl = "map.cgi"
   val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
 
-  var sessions: Set[CharacterSession] = Set[CharacterSession]()
+  var sessions: ListBuffer[Option[CharacterSession]] = ListBuffer.fill(3)(None)
   var activeSession: Option[CharacterSession] = None
   val charactersFile = "characters.json"
 
@@ -39,17 +39,27 @@ object UrbanDeadModel {
   def loadCharacters(completion: () => Unit): Unit = {
     new Thread(() => {
       val file = new File(charactersFile)
-      if(!file.exists()) return
-      val stream = Source.fromFile(file)
-      val string = stream.getLines.mkString
-      if(!string.isEmpty) {
-        val parsed = parse(string)
-        val characters = parsed \\ "characters"
-        val extracted = characters.extract[Set[PersistentSession]]
-        val mapped = extracted.map(_.decodePassword())
-        sessions = mapped
+      if(file.exists()) {
+        val stream = Source.fromFile(file)
+        val string = stream.getLines.mkString
+        if(!string.isEmpty) {
+          val parsed = parse(string)
+          val characters: List[JValue] = (parsed \\ "characters").children
+          val extracted = characters.map { character =>
+            try {
+              Some(character.extract[PersistentSession])
+            }
+            catch {
+              case _: MappingException => None
+            }
+          }
+          val mapped = extracted.map { character =>
+            if(character.isEmpty) None else Some(character.get.decodePassword())
+          }.to[ListBuffer]
+          sessions = mapped
+        }
+        stream.close()
       }
-      stream.close()
       Platform.runLater(() => {
         completion()
       })
@@ -58,7 +68,10 @@ object UrbanDeadModel {
 
   def saveCharacters(): Unit = {
     new Thread(() => {
-      val charactersJson = write(sessions.map(_.encodePassword()))
+      val mapped = sessions.map { character =>
+        if(character.isEmpty) "{}" else Some(character.get.encodePassword())
+      }
+      val charactersJson = write(mapped)
       val pw = new PrintWriter(new File(charactersFile))
       pw.write(s"""{"characters":$charactersJson}""")
       pw.close()
@@ -74,6 +87,7 @@ object UrbanDeadModel {
       val id = name.attr("href").replaceAll("profile\\.cgi\\?id=", "").toInt
       val colour = name.attr("class").replaceAll("con", "").toInt
       try {
+        // still need to debug this shit
         if(args(3).text.contains("&lt;/td&gt;")) println(s"the fucky level thing happened with $name")
         if(args(4).text.contains("&lt;/td&gt;")) println(s"the fucky xp thing happened with $name")
         val level = args(3).text.replaceAll("&lt;/td&gt;", "").toInt
@@ -109,7 +123,7 @@ object UrbanDeadModel {
     Some(MapState(60, 50, 88))
   }
 
-  def loginExistingSession(session: CharacterSession): Boolean = {
+  def loginExistingSession(session: CharacterSession, index: Int): Boolean = {
     if(session.state.value != Offline()) return true // already in progress / done!
 
     Platform.runLater(() => {
@@ -123,7 +137,7 @@ object UrbanDeadModel {
       // now logged in
 
       // do some database dumping here?
-      sessions += session
+      sessions(index) = Some(session)
       saveCharacters()
 
       StatusBar.status = "loading contacts..."
@@ -146,8 +160,8 @@ object UrbanDeadModel {
     }
   }
 
-  def loginRequest(username: String, password: String): Boolean = {
-    val session = CharacterSession(username, password)
-    loginExistingSession(session)
-  }
+//  def loginRequest(username: String, password: String): Boolean = {
+//    val session = CharacterSession(username, password)
+//    loginExistingSession(session)
+//  }
 }

@@ -79,11 +79,11 @@ class MainBorderPane extends BorderPane {
   // init stuff
   def init(): Unit = {
     UrbanDeadModel.loadCharacters(() => {
-      charactersPane.children = UrbanDeadModel.sessions.map { session =>
-        new CharacterBox(Some(session))
+      charactersPane.children = UrbanDeadModel.sessions.zipWithIndex.map { session =>
+        new CharacterBox(session._1, session._2)
       }
-      for(_ <- charactersPane.children.size() + 1 to 3)
-        charactersPane.children.add(new CharacterBox)
+      for(i <- charactersPane.children.size() + 1 to 3)
+        charactersPane.children.add(new CharacterBox(None, i))
 
       centreVBox.children = List(logoBox, charactersPane)
 

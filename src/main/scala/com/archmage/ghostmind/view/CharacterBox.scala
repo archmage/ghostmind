@@ -9,7 +9,7 @@ import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout._
 import scalafx.scene.text.TextAlignment
 
-class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
+class CharacterBox(var session: Option[CharacterSession] = None, val index: Int) extends VBox {
 
   alignment = Pos.Center
   padding = Insets(5)
@@ -62,7 +62,7 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
     text = "X"
     onMouseReleased = _ => {
       if(deleteConfirm) {
-        UrbanDeadModel.sessions.remove(session.get)
+        UrbanDeadModel.sessions(index) = None
         UrbanDeadModel.saveCharacters()
 
         session = None
@@ -160,7 +160,7 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
       session = Some(CharacterSession(username, password))
       update()
     }
-    val result = UrbanDeadModel.loginExistingSession(session.get)
+    val result = UrbanDeadModel.loginExistingSession(session.get, index)
     if(!result) {
       Platform.runLater(() => children = loginBox)
     }
