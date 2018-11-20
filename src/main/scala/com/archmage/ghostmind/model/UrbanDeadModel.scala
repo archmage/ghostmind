@@ -88,10 +88,15 @@ object UrbanDeadModel {
       val colour = name.attr("class").replaceAll("con", "").toInt
       try {
         // still need to debug this shit
-        if(args(3).text.contains("&lt;/td&gt;")) println(s"the fucky level thing happened with $name")
-        if(args(4).text.contains("&lt;/td&gt;")) println(s"the fucky xp thing happened with $name")
-        val level = args(3).text.replaceAll("&lt;/td&gt;", "").toInt
-        val xp = args(4).text.replaceAll("&lt;/td&gt;", "").toInt
+        val pattern = """.*?([0-9]+).*""".r
+        val level = args(3).text match {
+          case pattern(levelString) => levelString.toInt
+          case _ => -1
+        }
+        val xp = args(4).text match {
+          case pattern(xpString) => xpString.toInt
+          case _ => -1
+        }
         Contact(args.head.text, args(5).text, args(2).text, level, xp, id, colour)
       }
       catch {
