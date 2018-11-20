@@ -21,6 +21,11 @@
     -fx-font-size: 1.1em;
     -fx-text-fill: #aaaaaa;
 }
+#RedWarnText {
+    -fx-font-size: 1.1em;
+    -fx-text-fill: #ff493f;
+    -fx-font-weight: bold;
+}
 
 #WhiteText {
     -fx-text-fill: #dddddd;
@@ -28,6 +33,23 @@
 
 #CharacterBoxStatusText {
     -fx-font-weight: bold;
+}
+
+#RedXButton {
+    -fx-background-color: #c94040;
+    -fx-background-radius:0;
+    -fx-padding: 3 7 3 7;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+#RedXButton:hover {
+    -fx-background-color: #e05e5e;
+}
+
+#RedXButton:pressed {
+    -fx-background-color: #aa3434;
 }
 
 .table-view {

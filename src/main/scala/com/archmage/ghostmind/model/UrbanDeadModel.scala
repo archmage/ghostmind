@@ -11,6 +11,7 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
 import scalafx.application.Platform
 import scalafx.collections.ObservableBuffer
+import scala.collection.mutable.Set
 
 import scala.io.Source
 
@@ -23,7 +24,7 @@ object UrbanDeadModel {
   val mapUrl = "map.cgi"
   val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
 
-  var sessions = Set[CharacterSession]()
+  var sessions: Set[CharacterSession] = Set[CharacterSession]()
   var activeSession: Option[CharacterSession] = None
   val charactersFile = "characters.json"
 
@@ -35,26 +36,33 @@ object UrbanDeadModel {
     Some(response)
   }
 
-  def loadCharacters(): Unit = {
-    val file = new File(charactersFile)
-    if(!file.exists()) return
-    val stream = Source.fromFile(file)
-    val string = stream.getLines.mkString
-    if(!string.isEmpty) {
-      val parsed = parse(string)
-      val characters = parsed \\ "characters"
-      val extracted = characters.extract[Set[PersistentSession]]
-      val mapped = extracted.map(_.decodePassword())
-      sessions = mapped
-    }
-    stream.close()
+  def loadCharacters(completion: () => Unit): Unit = {
+    new Thread(() => {
+      val file = new File(charactersFile)
+      if(!file.exists()) return
+      val stream = Source.fromFile(file)
+      val string = stream.getLines.mkString
+      if(!string.isEmpty) {
+        val parsed = parse(string)
+        val characters = parsed \\ "characters"
+        val extracted = characters.extract[Set[PersistentSession]]
+        val mapped = extracted.map(_.decodePassword())
+        sessions = mapped
+      }
+      stream.close()
+      Platform.runLater(() => {
+        completion()
+      })
+    }).start()
   }
 
   def saveCharacters(): Unit = {
-    val charactersJson = write(sessions.map(_.encodePassword()))
-    val pw = new PrintWriter(new File(charactersFile))
-    pw.write(s"""{"characters":$charactersJson}""")
-    pw.close()
+    new Thread(() => {
+      val charactersJson = write(sessions.map(_.encodePassword()))
+      val pw = new PrintWriter(new File(charactersFile))
+      pw.write(s"""{"characters":$charactersJson}""")
+      pw.close()
+    }).start()
   }
 
   def parseContactList(doc: JsoupDocument, session: CharacterSession): List[Contact] = {
@@ -65,7 +73,21 @@ object UrbanDeadModel {
       val name = row.children.head >> element("a")
       val id = name.attr("href").replaceAll("profile\\.cgi\\?id=", "").toInt
       val colour = name.attr("class").replaceAll("con", "").toInt
-      Contact(args.head.text, args(5).text, args(2).text, args(3).text.toInt, args(4).text.toInt, id, colour)
+      try {
+        if(args(3).text.contains("&lt;/td&gt;")) println(s"the fucky level thing happened with $name")
+        if(args(4).text.contains("&lt;/td&gt;")) println(s"the fucky xp thing happened with $name")
+        val level = args(3).text.replaceAll("&lt;/td&gt;", "").toInt
+        val xp = args(4).text.replaceAll("&lt;/td&gt;", "").toInt
+        Contact(args.head.text, args(5).text, args(2).text, level, xp, id, colour)
+      }
+      catch {
+        case nfe: NumberFormatException =>
+          for(exceptionRow <- contactRows) {
+            println(exceptionRow.innerHtml)
+          }
+          nfe.printStackTrace()
+          Contact(args.head.text, args(5).text, args(2).text, -1, -1, id, colour)
+      }
     }
 
     contactsBuffer.clear()

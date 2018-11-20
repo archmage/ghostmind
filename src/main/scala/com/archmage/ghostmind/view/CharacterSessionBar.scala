@@ -25,7 +25,7 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
   }
 
   val nameLabel = new Label {
-    id = "WhiteText"
+    id = "Title"
     text = session.username
   }
 

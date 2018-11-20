@@ -1,7 +1,6 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model._
-import javafx.scene.{layout => jfxsl}
 import scalafx.Includes._
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
@@ -16,9 +15,18 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
   padding = Insets(5)
   spacing = 10
   prefWidth = 180
-  prefHeight = 202
+  prefHeight = 210
+
+  var deleteConfirm = false
 
   background <== when(hover) choose Colors.hoverBackground otherwise Colors.normalBackground
+
+  onMouseExited = _ => {
+    if(deleteConfirm) {
+      deleteConfirm = false
+      update()
+    }
+  }
 
   // session absent
   val plusIcon = new ImageView{
@@ -30,13 +38,15 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
     id = "Subtitle"
     text = "add a character"
   }
-  val loginBox = new LoginVBox(login, loginComplete)
+  var loginBox = new LoginVBox(login, loginComplete)
 
   // session present
   val nameString = if(session.isDefined) session.get.username else "Unknown"
   val levelString = "???"
   val classString = "Mystery"
   val groupString = "[unknown group]"
+
+  def detailsString: String = s"the Level $levelString $classString\n$groupString"
 
   val avatar = new ImageView {
     fitWidth = 90
@@ -48,7 +58,23 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
 //    text = "(0)"
   }
   val deleteButton = new Button {
+    id = "RedXButton"
     text = "X"
+    onMouseReleased = _ => {
+      if(deleteConfirm) {
+        UrbanDeadModel.sessions.remove(session.get)
+        UrbanDeadModel.saveCharacters()
+
+        session = None
+        loginBox = new LoginVBox(login, loginComplete)
+
+        deleteConfirm = false
+      }
+      else {
+        deleteConfirm = true
+      }
+      update()
+    }
   }
   val topStackPane = new StackPane {
     alignment = Pos.TopCenter
@@ -63,7 +89,7 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
   }
   val details = new Label {
     id = "Subtitle"
-    text = s"the Level $levelString $classString\n$groupString"
+    text = detailsString
     padding = Insets(-10, 0, 0, 0)
     textAlignment = TextAlignment.Center
   }
@@ -89,6 +115,11 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
       }
       else {
         session.get.state.onChange { (_, _, _) => update() }
+        style =
+          """-fx-border-style: solid;
+            |-fx-border-color: grey;
+            |-fx-border-width: 2px;
+          """.stripMargin
         try {
           avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.get.username}.png"))
         }
@@ -97,6 +128,14 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
             avatar.image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
         }
         name.text = session.get.username
+        if(deleteConfirm) {
+          details.id = "RedWarnText"
+          details.text = "click again to\ndelete this character"
+        }
+        else {
+          details.id = "Subtitle"
+          details.text = detailsString
+        }
         status.text = session.get.state.value.toString.dropRight(2).toUpperCase
         session.get.state.value match {
           case Offline() => status.style = "-fx-text-fill: #ff0000;"
@@ -123,7 +162,7 @@ class CharacterBox(var session: Option[CharacterSession] = None) extends VBox {
     }
     val result = UrbanDeadModel.loginExistingSession(session.get)
     if(!result) {
-      children = loginBox
+      Platform.runLater(() => children = loginBox)
     }
   }
 
