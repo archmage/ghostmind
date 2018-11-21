@@ -6,6 +6,7 @@ import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.{Button, Label}
 import scalafx.scene.image.{Image, ImageView}
+import javafx.scene.input.MouseButton
 import scalafx.scene.layout._
 import scalafx.scene.text.TextAlignment
 
@@ -52,7 +53,10 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     fitWidth = 90
     fitHeight = 90
   }
-  val mailLabel = new Label {
+  val mailIcon = new ImageView {
+    image = new Image(getClass.getResourceAsStream("assets/mail.png"))
+    fitWidth = 30
+    fitHeight = 30
     // turn this into a stacked image and label combo
 //    id = "WhiteText"
 //    text = "(0)"
@@ -79,7 +83,8 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   val topStackPane = new StackPane {
     alignment = Pos.TopCenter
     children = List(avatar, new HBox {
-        children = List(mailLabel, new Region { hgrow = Priority.Always }, deleteButton)
+        padding = Insets(0, 2, 0, 2)
+        children = List(mailIcon, new Region { hgrow = Priority.Always }, deleteButton)
       }
     )
   }
@@ -109,8 +114,8 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
             |-fx-border-width: 2px;
           """.stripMargin
         children = List(plusIcon, addCharacterLabel)
-        onMouseReleased = _ => {
-          children = loginBox
+        onMouseClicked = event => {
+          if(event.getButton == MouseButton.PRIMARY) children = loginBox
         }
       }
       else {
@@ -139,16 +144,20 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         status.text = session.get.state.value.toString.dropRight(2).toUpperCase
         session.get.state.value match {
           case Offline() => status.style = "-fx-text-fill: #ff0000;"
-          case Connecting() => status.style = "-fx-text-fill: #dddd00;"
+          case Connecting() => status.style = "-fx-text-fill: #ffff00;"
           case Online() => status.style = "-fx-text-fill: #00ff00;"
         }
         children = List(topStackPane, name, details, status)
-        onMouseReleased = _ => {
-          session.get.state.value match {
+
+        onMouseClicked = event => {
+          if(event.getButton == MouseButton.PRIMARY) session.get.state.value match {
             case Offline() =>
               new Thread(() => login(session.get.username, session.get.password)).start()
             case Connecting() => ()
             case Online() => startSession()
+          }
+          else if(event.getButton == MouseButton.SECONDARY) {
+            if(session.get.state.value == Online()) logout()
           }
         }
       }
@@ -168,14 +177,17 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
   def loginComplete(): Unit = {
     session.get.state.value = Online()
-    update()
-
-    onMouseReleased = _ => startSession()
   }
 
   def startSession(): Unit = {
     UrbanDeadModel.activeSession = session
     UIModel.state = Main()
+  }
+
+  def logout(): Unit = {
+    session.get.resetBrowser()
+    StatusBar.status = s"""logged out as "${session.get.username}""""
+    session.get.state.value = Offline()
   }
 
   update()

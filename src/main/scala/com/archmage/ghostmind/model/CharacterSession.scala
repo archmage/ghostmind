@@ -18,7 +18,13 @@ case class CharacterSession(username: String, password: String) {
   def encodePassword(): PersistentSession = {
     PersistentSession(username, password.getBytes)
   }
+
+  def resetBrowser(): Unit = {
+    browser = new JsoupBrowser(UrbanDeadModel.useragent)
+  }
 }
+
+case class MapState(hp: Int, ap: Int, encumbrance: Int)
 
 sealed trait SessionState
 case class Offline() extends SessionState

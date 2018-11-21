@@ -1,11 +1,14 @@
 package com.archmage.ghostmind.model
 
 import java.io.{File, PrintWriter}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 import com.archmage.ghostmind.view.StatusBar
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
+import net.ruippeixotog.scalascraper.model.Element
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
@@ -27,6 +30,8 @@ object UrbanDeadModel {
   var sessions: ListBuffer[Option[CharacterSession]] = ListBuffer.fill(3)(None)
   var activeSession: Option[CharacterSession] = None
   val charactersFile = "characters.json"
+
+  val characterDirectory = "characters"
 
   val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
 
@@ -86,27 +91,17 @@ object UrbanDeadModel {
       val name = row.children.head >> element("a")
       val id = name.attr("href").replaceAll("profile\\.cgi\\?id=", "").toInt
       val colour = name.attr("class").replaceAll("con", "").toInt
-      try {
-        // still need to debug this shit
-        val pattern = """.*?([0-9]+).*""".r
-        val level = args(3).text match {
-          case pattern(levelString) => levelString.toInt
-          case _ => -1
-        }
-        val xp = args(4).text match {
-          case pattern(xpString) => xpString.toInt
-          case _ => -1
-        }
-        Contact(args.head.text, args(5).text, args(2).text, level, xp, id, colour)
+
+      val pattern = """.*?([0-9]+).*""".r
+      val level = args(3).text match {
+        case pattern(levelString) => levelString.toInt
+        case _ => -1
       }
-      catch {
-        case nfe: NumberFormatException =>
-          for(exceptionRow <- contactRows) {
-            println(exceptionRow.innerHtml)
-          }
-          nfe.printStackTrace()
-          Contact(args.head.text, args(5).text, args(2).text, -1, -1, id, colour)
+      val xp = args(4).text match {
+        case pattern(xpString) => xpString.toInt
+        case _ => -1
       }
+      Contact(args.head.text, args(5).text, args(2).text, level, xp, id, colour)
     }
 
     contactsBuffer.clear()
@@ -120,12 +115,45 @@ object UrbanDeadModel {
     List("Skill 1", "Skill 2", "Skill 3")
   }
 
-  def parseMap(doc: JsoupDocument, session: CharacterSession): Option[MapState] = {
+  // next steps - UI!
+  def parseMap(session: CharacterSession): Unit = {
     val map = session.browser.get(s"$baseUrl/$mapUrl")
-    val gt = (map >> elementList(".gt")).head
 
-    println(gt)
-    Some(MapState(60, 50, 88))
+    parseEvents(map, session)
+
+    val gtElements = map >> elementList(".gt")
+    val statusBlock = gtElements.head
+    val locationBlock = gtElements(1)
+
+    parseStatusBlock(statusBlock, session)
+    parseLocationBlock(locationBlock, session)
+
+//    Some(MapState(60, 50, 88))
+  }
+
+  def parseEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
+    val eventsElement = doc >?> element("ul")
+    if(eventsElement.isDefined) {
+      val events = eventsElement >> elementList("li")
+      val eventsText = events.get.map { _.innerHtml }
+      val timeNow = LocalDateTime.now()
+      val timeFormatted = DateTimeFormatter.ISO_DATE_TIME.format(timeNow)
+      val characterDirectoryFile = new File(characterDirectory)
+      if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
+      val pw = new PrintWriter(new File(s"$characterDirectory/${session.username}.events"))
+      for(line <- eventsText) {
+        pw.append(s"($timeFormatted) $line  \n")
+      }
+      pw.close()
+    }
+  }
+
+  def parseStatusBlock(block: Element, session: CharacterSession): Unit = {
+    // implement this later, nerd
+  }
+
+  def parseLocationBlock(block: Element, session: CharacterSession): Unit = {
+    // same
   }
 
   def loginExistingSession(session: CharacterSession, index: Int): Boolean = {
@@ -151,6 +179,9 @@ object UrbanDeadModel {
       StatusBar.status = "loading skills..."
       val skillsDoc = request(s"$baseUrl/$skillsUrl", session)
       session.skills = Some(parseSkills(skillsDoc.get))
+
+      StatusBar.status = "testing map event code..."
+      parseMap(session)
 
       Platform.runLater(() => {
         session.state.value = Online()
