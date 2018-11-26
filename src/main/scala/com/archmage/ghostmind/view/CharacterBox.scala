@@ -53,14 +53,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     fitWidth = 90
     fitHeight = 90
   }
-  val mailIcon = new ImageView {
-    image = new Image(getClass.getResourceAsStream("assets/mail.png"))
-    fitWidth = 30
-    fitHeight = 30
-    // turn this into a stacked image and label combo
-//    id = "WhiteText"
-//    text = "(0)"
-  }
+  val mailIcon = new MailIcon
   val deleteButton = new Button {
     id = "RedXButton"
     text = "X"
@@ -82,7 +75,9 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   }
   val topStackPane = new StackPane {
     alignment = Pos.TopCenter
-    children = List(avatar, new HBox {
+    children = List(
+      avatar, new HBox {
+        alignment = Pos.TopCenter
         padding = Insets(0, 2, 0, 2)
         children = List(mailIcon, new Region { hgrow = Priority.Always }, deleteButton)
       }
@@ -108,11 +103,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   def update(): Unit = {
     Platform.runLater(() => {
       if(session.isEmpty) {
-        style =
-          """-fx-border-style: segments(12, 6);
-            |-fx-border-color: grey;
-            |-fx-border-width: 2px;
-          """.stripMargin
+        id = "DottedGreyBorder"
         children = List(plusIcon, addCharacterLabel)
         onMouseClicked = event => {
           if(event.getButton == MouseButton.PRIMARY) children = loginBox
@@ -120,11 +111,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
       }
       else {
         session.get.state.onChange { (_, _, _) => update() }
-        style =
-          """-fx-border-style: solid;
-            |-fx-border-color: grey;
-            |-fx-border-width: 2px;
-          """.stripMargin
+        id = "SolidGreyBorder"
         try {
           avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.get.username}.png"))
         }
@@ -147,6 +134,8 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           case Connecting() => status.style = "-fx-text-fill: #ffff00;"
           case Online() => status.style = "-fx-text-fill: #00ff00;"
         }
+        mailIcon.visible = session.get.events.isDefined
+        if(session.get.events.isDefined) mailIcon.mailCount.text = session.get.events.get.size.toString
         children = List(topStackPane, name, details, status)
 
         onMouseClicked = event => {

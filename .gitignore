@@ -21,3 +21,4 @@ project/plugins/project/
 
 # data files to be created and handled locally
 characters.json
+characters/

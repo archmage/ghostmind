@@ -26,14 +26,42 @@
     -fx-text-fill: #ff493f;
     -fx-font-weight: bold;
 }
+#BoxHeading {
+    -fx-font-size: 1.2em;
+    -fx-text-fill: #eeeeee;
+    -fx-font-weight: bold;
+}
 
 #WhiteText {
     -fx-text-fill: #dddddd;
 }
-
 #CharacterBoxStatusText {
     -fx-font-weight: bold;
 }
+
+#MailCount {
+    -fx-font-size: 1.1em;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+#MailCount .text {
+    -fx-stroke: #ff493f;
+    -fx-stroke-width: 3px;
+    -fx-stroke-type:outside;
+}
+
+#DottedGreyBorder {
+    -fx-border-style: segments(12, 6);
+    -fx-border-color: grey;
+    -fx-border-width: 2px;
+}
+#SolidGreyBorder {
+    -fx-border-style: solid;
+    -fx-border-color: grey;
+    -fx-border-width: 2px;
+}
+
 
 #RedXButton {
     -fx-background-color: #c94040;

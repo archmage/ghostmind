@@ -127,8 +127,6 @@ object UrbanDeadModel {
 
     parseStatusBlock(statusBlock, session)
     parseLocationBlock(locationBlock, session)
-
-//    Some(MapState(60, 50, 88))
   }
 
   def parseEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
@@ -140,9 +138,12 @@ object UrbanDeadModel {
       val timeFormatted = DateTimeFormatter.ISO_DATE_TIME.format(timeNow)
       val characterDirectoryFile = new File(characterDirectory)
       if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
-      val pw = new PrintWriter(new File(s"$characterDirectory/${session.username}.events"))
+      val pw = new PrintWriter(new File(s"$characterDirectory/${session.username}-log.md"))
       for(line <- eventsText) {
-        pw.append(s"($timeFormatted) $line  \n")
+        if(session.events.isEmpty) session.events = Some(ListBuffer())
+        val string = s"($timeFormatted) $line  \n"
+        session.events.get += string
+        pw.append(string)
       }
       pw.close()
     }
@@ -180,7 +181,7 @@ object UrbanDeadModel {
       val skillsDoc = request(s"$baseUrl/$skillsUrl", session)
       session.skills = Some(parseSkills(skillsDoc.get))
 
-      StatusBar.status = "testing map event code..."
+      StatusBar.status = "checking map.cgi..."
       parseMap(session)
 
       Platform.runLater(() => {
@@ -195,9 +196,4 @@ object UrbanDeadModel {
         false
     }
   }
-
-//  def loginRequest(username: String, password: String): Boolean = {
-//    val session = CharacterSession(username, password)
-//    loginExistingSession(session)
-//  }
 }

@@ -3,6 +3,8 @@ package com.archmage.ghostmind.model
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import scalafx.beans.property.ObjectProperty
 
+import scala.collection.mutable.ListBuffer
+
 case class CharacterSession(username: String, password: String) {
 
   var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
@@ -14,6 +16,8 @@ case class CharacterSession(username: String, password: String) {
   var skills: Option[List[String]] = None
 
   var mapState: Option[MapState] = None
+
+  var events: Option[ListBuffer[String]] = None
 
   def encodePassword(): PersistentSession = {
     PersistentSession(username, password.getBytes)

@@ -2,7 +2,7 @@ package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
 import scalafx.application.Platform
-import scalafx.geometry.Pos
+import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
 import scalafx.scene.control.{Label, Tab, TabPane}
 import scalafx.scene.layout.{BorderPane, StackPane, VBox}
@@ -14,13 +14,17 @@ class MainBorderPane extends BorderPane {
   // higher-level organising elements
   val leftTabPane = new TabPane
   val rightTabPane = new TabPane
-  val centreVBox = new VBox
+  val centreVBox = new VBox {
+    padding = Insets(10)
+    spacing = 10
+  }
   val skillsStackPane = new StackPane
 
   // actual interface elements
   val logoBox = new LogoBox
   val charactersPane = new CharactersPane
   var sessionBar: CharacterSessionBar = _
+  var eventsCatchupBox: EventsCatchupBox = _
   val skillsLabel = new Label {
     id = "WhiteText"
     text = "Skills!"
@@ -39,11 +43,6 @@ class MainBorderPane extends BorderPane {
     tab("Skills", skillsStackPane)
   )
 
-  // tweaking
-  centreVBox.children = logoBox
-  centreVBox.alignment = Pos.Center
-  centreVBox.spacing = 10
-
   // view helpers
   def tab(title: String, contentNode: Node): Tab = {
     new Tab {
@@ -59,6 +58,9 @@ class MainBorderPane extends BorderPane {
     Platform.runLater(() => {
       UIModel.state.value match {
         case Characters() =>
+          centreVBox.alignment = Pos.Center
+          centreVBox.children = List(logoBox, charactersPane)
+
           top = null
           left = null
           right = null
@@ -66,11 +68,14 @@ class MainBorderPane extends BorderPane {
           bottom = statusBar
         case Main() =>
           sessionBar = new CharacterSessionBar(UrbanDeadModel.activeSession.get)
+          eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
+          centreVBox.alignment = Pos.TopCenter
+          centreVBox.children = eventsCatchupBox
 
           top = sessionBar
           left = leftTabPane
           right = rightTabPane
-          center = null
+          center = centreVBox
           bottom = statusBar
       }
     })
@@ -84,8 +89,6 @@ class MainBorderPane extends BorderPane {
       }
       for(i <- charactersPane.children.size() + 1 to 3)
         charactersPane.children.add(new CharacterBox(None, i))
-
-      centreVBox.children = List(logoBox, charactersPane)
 
       UIModel.state.onChange { (_, _, _) => modelStateChanged()}
 
