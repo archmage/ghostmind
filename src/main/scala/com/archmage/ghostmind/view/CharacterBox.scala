@@ -41,14 +41,6 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   }
   var loginBox = new LoginVBox(login, loginComplete)
 
-  // session present
-  val nameString = if(session.isDefined) session.get.username else "Unknown"
-  val levelString = "???"
-  val classString = "Mystery"
-  val groupString = "[unknown group]"
-
-  def detailsString: String = s"the Level $levelString $classString\n$groupString"
-
   val avatar = new ImageView {
     fitWidth = 90
     fitHeight = 90
@@ -83,16 +75,15 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
       }
     )
   }
-  val name = new Label {
-    id = "Title"
-    text = nameString
-  }
-  val details = new Label {
+
+  val groupLabel = new Label {
     id = "Subtitle"
-    text = detailsString
+    text = ""
     padding = Insets(-10, 0, 0, 0)
-    textAlignment = TextAlignment.Center
   }
+
+  val nameplate = new CharacterNameplate()
+
   val status = new Label {
     id = "CharacterBoxStatusText"
     style = "-fx-text-fill: #ff0000;"
@@ -119,14 +110,20 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           case _: Exception =>
             avatar.image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
         }
-        name.text = session.get.username
+
+        val groupString = if(session.get.attributes.isEmpty) "[unknown group]"
+                          else s"[${
+          if(session.get.attributes.get.group == "none") "no group" else session.get.attributes.get.group
+        }]"
         if(deleteConfirm) {
-          details.id = "RedWarnText"
-          details.text = "click again to\ndelete this character"
+          nameplate.details.visible = false
+          groupLabel.id = "RedWarnText"
+          groupLabel.text = "click again to\ndelete this character"
         }
         else {
-          details.id = "Subtitle"
-          details.text = detailsString
+          nameplate.details.visible = true
+          groupLabel.id = "Subtitle"
+          groupLabel.text = groupString
         }
         status.text = session.get.state.value.toString.dropRight(2).toUpperCase
         session.get.state.value match {
@@ -136,7 +133,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         }
         mailIcon.visible = session.get.events.isDefined
         if(session.get.events.isDefined) mailIcon.mailCount.text = session.get.events.get.size.toString
-        children = List(topStackPane, name, details, status)
+        children = List(topStackPane, nameplate, groupLabel, status)
 
         onMouseClicked = event => {
           if(event.getButton == MouseButton.PRIMARY) session.get.state.value match {
@@ -150,6 +147,8 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           }
         }
       }
+      nameplate.session = session
+      nameplate.update()
     })
   }
 

@@ -22,7 +22,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
     }
     val events = session.events.get.map { event => new Label {
       id = "WhiteText"
-      text = event
+      text = event.formatOutput()
       padding = Insets(0, 0, 0, 6)
       wrapText = true
     }}.toList

@@ -23,8 +23,9 @@ object UrbanDeadModel {
 
   val baseUrl = "http://urbandead.com"
   val contactsUrl = "contacts.cgi?username=%1$s&password=%2$s"
-  val skillsUrl = "skills.cgi?"
+  val skillsUrl = "skills.cgi"
   val mapUrl = "map.cgi"
+  val profileUrl = "profile.cgi?id="
   val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
 
   var sessions: ListBuffer[Option[CharacterSession]] = ListBuffer.fill(3)(None)
@@ -117,11 +118,16 @@ object UrbanDeadModel {
 
   // next steps - UI!
   def parseMap(session: CharacterSession): Unit = {
-    val map = session.browser.get(s"$baseUrl/$mapUrl")
+    val map = request(s"$baseUrl/$mapUrl", session)
 
-    parseEvents(map, session)
+    if(map.isEmpty) {
+      // throw or something, idfk
+      return
+    }
 
-    val gtElements = map >> elementList(".gt")
+    parseEvents(map.get, session)
+
+    val gtElements = map.get >> elementList(".gt")
     val statusBlock = gtElements.head
     val locationBlock = gtElements(1)
 
@@ -133,24 +139,51 @@ object UrbanDeadModel {
     val eventsElement = doc >?> element("ul")
     if(eventsElement.isDefined) {
       val events = eventsElement >> elementList("li")
-      val eventsText = events.get.map { _.innerHtml }
-      val timeNow = LocalDateTime.now()
-      val timeFormatted = DateTimeFormatter.ISO_DATE_TIME.format(timeNow)
+//      val eventsText = events.get.map { _.innerHtml }
+      val eventsText = events.get.map { _.text }
       val characterDirectoryFile = new File(characterDirectory)
       if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
       val pw = new PrintWriter(new File(s"$characterDirectory/${session.username}-log.md"))
       for(line <- eventsText) {
         if(session.events.isEmpty) session.events = Some(ListBuffer())
-        val string = s"($timeFormatted) $line  \n"
-        session.events.get += string
-        pw.append(string)
+        val event = Event(Event.parseTimeText(line), line)
+        session.events.get += event
+        pw.append(event.formatOutput())
       }
       pw.close()
     }
   }
 
-  def parseStatusBlock(block: Element, session: CharacterSession): Unit = {
-    // implement this later, nerd
+  def parseStatusBlock(block: Element, session: CharacterSession): Option[CharacterAttributes] = {
+    val boldElements = block >> elementList("b")
+    // grab the last 3, since sometimes you're dead
+    val numbers = boldElements.slice(boldElements.size - 3, boldElements.size).map { _.text.toInt }
+
+    // grab the id too?
+    val idLink = (block >> element("a")).attr("href")
+    val id = idLink.substring(profileUrl.length).toInt
+
+    val profileDoc = request(s"$baseUrl/$profileUrl$id", session)
+
+    if(profileDoc.isEmpty) {
+      // throw some more stuff, who even cares lmao
+      return None
+    }
+
+    val profile = parseProfile(profileDoc.get, session)
+
+    val attributes = Some(CharacterAttributes(id, numbers.head, numbers(2), profile.level, profile.characterClass,
+      numbers(1), profile.description, profile.group))
+    session.attributes = attributes
+    attributes
+  }
+
+  def parseProfile(doc: JsoupDocument, session: CharacterSession): CharacterAttributes = {
+    val rows = doc >> elementList("tr")
+    val data = rows.map { _ >> elementList(".slam") }
+//    val description = (doc >> element("td .gp")).text
+    val group = data(2)(1).text
+    CharacterAttributes(-1, -1, -1, data(1).head.text.toInt, data.head.head.text, -1, "", group)
   }
 
   def parseLocationBlock(block: Element, session: CharacterSession): Unit = {
@@ -172,7 +205,6 @@ object UrbanDeadModel {
 
       // do some database dumping here?
       sessions(index) = Some(session)
-      saveCharacters()
 
       StatusBar.status = "loading contacts..."
       session.contacts = Some(parseContactList(contactsDoc.get, session))
@@ -183,6 +215,9 @@ object UrbanDeadModel {
 
       StatusBar.status = "checking map.cgi..."
       parseMap(session)
+
+      StatusBar.status = "saving character data..."
+      saveCharacters()
 
       Platform.runLater(() => {
         session.state.value = Online()
