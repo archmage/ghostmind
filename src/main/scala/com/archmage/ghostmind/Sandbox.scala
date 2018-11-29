@@ -1,13 +1,20 @@
 package com.archmage.ghostmind
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneId}
+import java.time.temporal.ChronoUnit
 
-import com.archmage.ghostmind.model.Event
+import com.archmage.ghostmind.model.UrbanDeadModel
 
 object Sandbox extends App {
-  val now = LocalDateTime.now()
-  val parsedDate = Event.parseTimeText("(6 seconds ago)")
-  println(now)
-  println(parsedDate)
+  val now = LocalDateTime.now().atZone(ZoneId.of("Australia/Melbourne"))
+  val nextRollover = UrbanDeadModel.getNextRollover()
+
+  println(
+    s"""
+       |$now
+       |$nextRollover
+       |${nextRollover.withZoneSameInstant(ZoneId.of("Australia/Melbourne"))}
+       |${now.until(nextRollover, ChronoUnit.HOURS)}
+     """.stripMargin)
 }
 

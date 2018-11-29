@@ -1,6 +1,6 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
+import com.archmage.ghostmind.model.UrbanDeadModel
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
@@ -74,7 +74,7 @@ class MainBorderPane extends BorderPane {
 
           top = sessionBar
           left = leftTabPane
-          right = rightTabPane
+          right = null
           center = centreVBox
           bottom = statusBar
       }

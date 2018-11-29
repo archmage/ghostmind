@@ -17,7 +17,7 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
       image = new Image(getClass.getResourceAsStream(s"assets/${session.username}.png"))
     }
     catch {
-      case npe: NullPointerException =>
+      case _: NullPointerException =>
         image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
     }
     fitWidth = 50
@@ -26,24 +26,12 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
 
   val nameplate = new CharacterNameplate()
 
-  val hpLabel = new Label {
-    id = "WhiteText"
-    text = "HP 50/50"
-    padding = Insets(0, -7, 0, 0)
+  val hpBar = new GhostProgressBar {
+    bar.id = "HpBar"
   }
 
-  val hpBar = new ProgressBar {
-    progress = 1.0
-  }
-
-  val apLabel = new Label {
-    id = "WhiteText"
-    text = "AP 50/50"
-    padding = Insets(0, -7, 0, 0)
-  }
-
-  val apBar = new ProgressBar {
-    progress = 1.0
+  val apBar = new GhostProgressBar {
+    bar.id = "ApBar"
   }
 
   val xpLabel = new Label {
@@ -60,14 +48,15 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
     onMouseReleased = _ => UIModel.state = Characters()
   }
 
-  children = List(avatar, nameplate, xpLabel, hpLabel, hpBar, apLabel, apBar, growRegion, characterButton)
+  children = List(avatar, nameplate, xpLabel, hpBar, apBar, growRegion, characterButton)
 
   def update(): Unit =  {
     if(session.attributes.isDefined) {
-      hpLabel.text = s"HP ${session.attributes.get.hp.toString}/60"
-      hpBar.progress = session.attributes.get.hp / 60.0
-      apLabel.text = s"AP ${session.attributes.get.ap.toString}/50"
-      apBar.progress = session.attributes.get.ap / 50.0
+      val attributes = session.attributes.get
+      hpBar.text.text = s"HP ${attributes.hp.toString}/50"
+      hpBar.bar.progress = attributes.hpDouble()
+      apBar.text.text = s"AP ${attributes.ap.toString}/50"
+      apBar.bar.progress = attributes.apDouble()
       xpLabel.text = s"${session.attributes.get.xp.toString}xp"
     }
 

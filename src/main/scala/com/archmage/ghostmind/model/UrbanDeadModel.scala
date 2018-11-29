@@ -1,8 +1,10 @@
 package com.archmage.ghostmind.model
 
-import java.io.{File, PrintWriter}
-import java.time.LocalDateTime
+import java.io.{File, FileOutputStream, PrintWriter}
+import java.time._
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.util.TimeZone
 
 import com.archmage.ghostmind.view.StatusBar
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
@@ -60,7 +62,15 @@ object UrbanDeadModel {
             }
           }
           val mapped = extracted.map { character =>
-            if(character.isEmpty) None else Some(character.get.decodePassword())
+            if(character.isEmpty) None
+            else {
+              val session = character.get.decode()
+              // logic to reset hits
+              if(session.lastHit.until(getNextRollover(), ChronoUnit.HOURS) >= 24) {
+                session.hits = CharacterSession.maxDailyHits
+              }
+              Some(session)
+            }
           }.to[ListBuffer]
           sessions = mapped
         }
@@ -75,7 +85,7 @@ object UrbanDeadModel {
   def saveCharacters(): Unit = {
     new Thread(() => {
       val mapped = sessions.map { character =>
-        if(character.isEmpty) "{}" else Some(character.get.encodePassword())
+        if(character.isEmpty) "{}" else Some(character.get.encode())
       }
       val charactersJson = write(mapped)
       val pw = new PrintWriter(new File(charactersFile))
@@ -118,6 +128,13 @@ object UrbanDeadModel {
 
   // next steps - UI!
   def parseMap(session: CharacterSession): Unit = {
+    if(session.hits <= 0) {
+      // can't be done, sorry
+      return
+    }
+
+    session.hits -= 1
+    session.lastHit = LocalDateTime.now().atZone(ZoneId.systemDefault())
     val map = request(s"$baseUrl/$mapUrl", session)
 
     if(map.isEmpty) {
@@ -143,12 +160,13 @@ object UrbanDeadModel {
       val eventsText = events.get.map { _.text }
       val characterDirectoryFile = new File(characterDirectory)
       if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
-      val pw = new PrintWriter(new File(s"$characterDirectory/${session.username}-log.md"))
+      val pw = new PrintWriter(new FileOutputStream(
+        new File(s"$characterDirectory/${session.username}-log.md"), true))
       for(line <- eventsText) {
         if(session.events.isEmpty) session.events = Some(ListBuffer())
         val event = Event(Event.parseTimeText(line), line)
         session.events.get += event
-        pw.append(event.formatOutput())
+        pw.append(event.formatOutput() + "\n")
       }
       pw.close()
     }
@@ -181,6 +199,7 @@ object UrbanDeadModel {
   def parseProfile(doc: JsoupDocument, session: CharacterSession): CharacterAttributes = {
     val rows = doc >> elementList("tr")
     val data = rows.map { _ >> elementList(".slam") }
+    // TODO implement this later
 //    val description = (doc >> element("td .gp")).text
     val group = data(2)(1).text
     CharacterAttributes(-1, -1, -1, data(1).head.text.toInt, data.head.head.text, -1, "", group)
@@ -230,5 +249,15 @@ object UrbanDeadModel {
         e.printStackTrace()
         false
     }
+  }
+
+  def getNextRollover(): ZonedDateTime = {
+    // get next midnight in UK
+    val midnight = LocalTime.MIDNIGHT
+    val today = LocalDate.now(ZoneId.of("Europe/London"))
+    val todayMidnight = LocalDateTime.of(today, midnight).atZone(ZoneId.of("Europe/London"))
+    val tomorrowMidnight = todayMidnight.plusDays(1)
+
+    tomorrowMidnight
   }
 }

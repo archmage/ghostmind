@@ -17,8 +17,7 @@ class MailIcon extends StackPane {
   val mailCount = new Label {
     padding = Insets(10, 0, 0, 16)
     id = "MailCount"
-    text = "99+"
-    alignment = Pos.Center
+    text = "0"
   }
 
   children = List(icon, mailCount)

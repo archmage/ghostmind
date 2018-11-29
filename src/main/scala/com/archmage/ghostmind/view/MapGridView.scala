@@ -22,9 +22,7 @@ class MapGridView extends GridPane {
           height = MapGridView.cellSize
           fill <== when(hover) choose Colors.green otherwise Colors.red
         }
-//        val cell = new Label {
-//          text = s"[$x, $y]"
-//        }
+
         this.add(cell, x, y)
       }
   }

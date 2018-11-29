@@ -41,7 +41,7 @@
 #MailCount .text {
     -fx-stroke: #ff493f;
     -fx-stroke-width: 2px;
-    -fx-stroke-type:outside;
+    -fx-stroke-type: outside;
 }
 #DottedGreyBorder {
     -fx-border-style: segments(12, 6);
@@ -52,6 +52,12 @@
     -fx-border-style: solid;
     -fx-border-color: grey;
     -fx-border-width: 2px;
+}
+#RedWarnBox {
+    -fx-border-style: solid;
+    -fx-border-color: #dd0000;
+    -fx-border-width: 2px;
+    -fx-background-color: #773b3c;
 }
 #RedXButton {
     -fx-background-color: #c94040;
@@ -67,6 +73,41 @@
 #RedXButton:pressed {
     -fx-background-color: #aa3434;
 }
+
+#ProgressBarText {
+    -fx-text-fill: #dddddd;
+    -fx-font-weight: bold;
+    -fx-font-size: 10px;
+}
+
+#HpBar {
+    -fx-accent: #d6627f;
+}
+
+#ApBar {
+    -fx-accent: #d1c57d;
+}
+
+#HitsBar {
+    -fx-accent: #9882ad;
+}
+
+.progress-bar {
+    -fx-box-border: #2a2a2a;
+}
+.progress-bar > .bar {
+    -fx-padding: 8px;
+}
+.progress-bar > .track {
+    -fx-control-inner-background: #555555;
+}
+
+.progress-bar > .bar, .progress-bar > .track {
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+
+
 .table-view {
    -fx-background-color: transparent;
 }
