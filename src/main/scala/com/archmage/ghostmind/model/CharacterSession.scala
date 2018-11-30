@@ -1,6 +1,7 @@
 package com.archmage.ghostmind.model
 
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
@@ -41,6 +42,28 @@ case class CharacterSession(
   def resetBrowser(): Unit = {
     browser = new JsoupBrowser(UrbanDeadModel.useragent)
   }
+
+  def hpString(): String = {
+    s"HP: ${if(attributes.isEmpty) "???" else attributes.get.hp}/50"
+  }
+
+  def apString(): String = {
+    s"AP: ${if(attributes.isEmpty) "???" else apCalculated()}/50"
+  }
+
+  def apCalculated(): Int = {
+    if(attributes.isEmpty) 50
+    else {
+      val now = LocalDateTime.now().atZone(ZoneId.systemDefault())
+      val apRecoveredLastHit = LocalDateTime.MIN.until(lastHit, ChronoUnit.MINUTES) / 30
+      val apRecoveredNow = LocalDateTime.MIN.until(now, ChronoUnit.MINUTES) / 30
+      Math.min(50, attributes.get.ap + (apRecoveredNow - apRecoveredLastHit).intValue())
+    }
+  }
+
+  def apDouble(): Double = {
+    apCalculated() / 50.0
+  }
 }
 
 case class CharacterAttributes(
@@ -55,10 +78,6 @@ case class CharacterAttributes(
 
   def hpDouble(): Double = {
     Math.min(hp / 50.0, 1)
-  }
-
-  def apDouble(): Double = {
-    ap / 50.0
   }
 }
 

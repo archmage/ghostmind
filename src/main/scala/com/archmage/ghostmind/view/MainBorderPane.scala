@@ -55,6 +55,7 @@ class MainBorderPane extends BorderPane {
 
   // change state
   def modelStateChanged(): Unit = {
+
     Platform.runLater(() => {
       UIModel.state.value match {
         case Characters() =>

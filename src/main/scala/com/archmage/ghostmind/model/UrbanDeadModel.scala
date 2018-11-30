@@ -175,6 +175,7 @@ object UrbanDeadModel {
   def parseStatusBlock(block: Element, session: CharacterSession): Option[CharacterAttributes] = {
     val boldElements = block >> elementList("b")
     // grab the last 3, since sometimes you're dead
+    // this fails if you have 0AP
     val numbers = boldElements.slice(boldElements.size - 3, boldElements.size).map { _.text.toInt }
 
     // grab the id too?

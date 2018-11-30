@@ -53,7 +53,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         UrbanDeadModel.sessions(index) = None
         UrbanDeadModel.saveCharacters()
 
-        avatar.image = null
+        avatar.image.value = null
         session = None
         loginBox = new LoginVBox(login, loginComplete)
 
@@ -113,14 +113,15 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
       else {
         val session = this.session.get
-        session.state.onChange { (_, _, _) => update() }
 
-        try {
-          avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.username}.png"))
-        }
-        catch {
-          case _: Exception =>
-            avatar.image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
+        if (avatar.image.value == null) {
+          try {
+            avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.username}.png"))
+          }
+          catch {
+            case _: Exception =>
+              avatar.image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
+          }
         }
 
         val groupString = if(session.attributes.isEmpty) "[unknown group]"
@@ -149,10 +150,10 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
         if(session.attributes.isDefined) {
           val attributes = session.attributes.get
-          hpBar.text.text = s"HP: ${attributes.hp}/50"
+          hpBar.text.text = session.hpString()
           hpBar.bar.progress = attributes.hpDouble()
-          apBar.text.text = s"AP: ${attributes.ap}/50"
-          apBar.bar.progress = attributes.apDouble()
+          apBar.text.text = session.apString()
+          apBar.bar.progress = session.apDouble()
           hitsBar.text.text = s"Hits: ${session.hits}/${CharacterSession.maxDailyHits}"
           hitsBar.bar.progress = session.hitsDouble()
         }
@@ -177,9 +178,14 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     })
   }
 
+  def addOnSessionStateChangeUpdate(): Unit = {
+    if(session.isDefined) session.get.state.onChange  { (_, _, _) => update() }
+  }
+
   def login(username: String, password: String): Unit = {
     if(session.isEmpty) {
       session = Some(CharacterSession(username, password))
+      addOnSessionStateChangeUpdate()
       update()
     }
     val result = UrbanDeadModel.loginExistingSession(session.get, index)
@@ -197,11 +203,13 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     UIModel.state = Main()
   }
 
+  // something is busted here
   def logout(): Unit = {
     session.get.resetBrowser()
     StatusBar.status = s"""logged out as "${session.get.username}""""
     session.get.state.value = Offline()
   }
 
+  addOnSessionStateChangeUpdate()
   update()
 }

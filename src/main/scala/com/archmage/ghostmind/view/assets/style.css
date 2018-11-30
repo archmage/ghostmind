@@ -80,12 +80,22 @@
     -fx-font-size: 10px;
 }
 
+#OutlineProgressBarText {
+    -fx-text-fill: #dddddd;
+    -fx-font-weight: bold;
+}
+#OutlineProgressBarText .text {
+    -fx-stroke: #333333;
+    -fx-stroke-width: 1px;
+    -fx-stroke-type: outside;
+}
+
 #HpBar {
     -fx-accent: #d6627f;
 }
 
 #ApBar {
-    -fx-accent: #d1c57d;
+    -fx-accent: #BAAD6D;
 }
 
 #HitsBar {
@@ -99,7 +109,7 @@
     -fx-padding: 8px;
 }
 .progress-bar > .track {
-    -fx-control-inner-background: #555555;
+    -fx-control-inner-background: #6D6D6D;
 }
 
 .progress-bar > .bar, .progress-bar > .track {

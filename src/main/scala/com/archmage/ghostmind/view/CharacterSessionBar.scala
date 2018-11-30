@@ -2,7 +2,7 @@ package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.CharacterSession
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.{Button, Label, ProgressBar}
+import scalafx.scene.control.{Button, Label}
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, Priority, Region, VBox}
 
@@ -34,6 +34,12 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
     bar.id = "ApBar"
   }
 
+  val barBox = new VBox {
+    alignment = Pos.Center
+    spacing = 3
+    children = List(hpBar, apBar)
+  }
+
   val xpLabel = new Label {
     id = "WhiteText"
     text = "0xp"
@@ -48,15 +54,15 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
     onMouseReleased = _ => UIModel.state = Characters()
   }
 
-  children = List(avatar, nameplate, xpLabel, hpBar, apBar, growRegion, characterButton)
+  children = List(avatar, nameplate, barBox, xpLabel, growRegion, characterButton)
 
   def update(): Unit =  {
     if(session.attributes.isDefined) {
       val attributes = session.attributes.get
-      hpBar.text.text = s"HP ${attributes.hp.toString}/50"
+      hpBar.text.text = session.hpString()
       hpBar.bar.progress = attributes.hpDouble()
-      apBar.text.text = s"AP ${attributes.ap.toString}/50"
-      apBar.bar.progress = attributes.apDouble()
+      apBar.text.text = session.apString()
+      apBar.bar.progress = session.apDouble()
       xpLabel.text = s"${session.attributes.get.xp.toString}xp"
     }
 
