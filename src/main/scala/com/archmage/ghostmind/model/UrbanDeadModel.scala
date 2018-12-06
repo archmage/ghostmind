@@ -2,9 +2,7 @@ package com.archmage.ghostmind.model
 
 import java.io.{File, FileOutputStream, PrintWriter}
 import java.time._
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.TimeZone
 
 import com.archmage.ghostmind.view.StatusBar
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
@@ -94,6 +92,11 @@ object UrbanDeadModel {
     }).start()
   }
 
+  def loadEvents(session: CharacterSession): Unit = {
+    val events = ListBuffer[Event]()
+    session.events = Some(events)
+  }
+
   def parseContactList(doc: JsoupDocument, session: CharacterSession): List[Contact] = {
     val contactRows = (doc >> elementList("tr")).tail.dropRight(1)
 
@@ -158,25 +161,43 @@ object UrbanDeadModel {
       val events = eventsElement >> elementList("li")
 //      val eventsText = events.get.map { _.innerHtml }
       val eventsText = events.get.map { _.text }
-      val characterDirectoryFile = new File(characterDirectory)
-      if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
-      val pw = new PrintWriter(new FileOutputStream(
-        new File(s"$characterDirectory/${session.username}-log.md"), true))
       for(line <- eventsText) {
         if(session.events.isEmpty) session.events = Some(ListBuffer())
         val event = Event(Event.parseTimeText(line), line)
         session.events.get += event
-        pw.append(event.formatOutput() + "\n")
       }
+
+      val mapped = session.events.getOrElse(ListBuffer()).map { event => event.encode() }
+      val eventsJson = write(mapped)
+
+      val characterDirectoryFile = new File(characterDirectory)
+      if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
+      val pw = new PrintWriter(new FileOutputStream(
+        new File(s"$characterDirectory/${session.username}-log.json"), true))
+      pw.append(s"""{"events":$eventsJson}""")
       pw.close()
     }
   }
 
   def parseStatusBlock(block: Element, session: CharacterSession): Option[CharacterAttributes] = {
     val boldElements = block >> elementList("b")
-    // grab the last 3, since sometimes you're dead
-    // this fails if you have 0AP
-    val numbers = boldElements.slice(boldElements.size - 3, boldElements.size).map { _.text.toInt }
+
+    // i don't like defaulting to this without some sort of UI indication that this has happened
+    // maybe make attributes.hp optional and show ??? when None
+    // probably do this later, it's an edge case
+    var hp = 50
+
+    var xp = 0
+    var ap = 0
+    if(boldElements.length <= 2) {
+      ap = boldElements.last.text.toInt
+    }
+    else {
+      val numbers = boldElements.slice(boldElements.size - 3, boldElements.size)
+      hp = numbers.head.text.toInt
+      xp = numbers(1).text.toInt
+      ap = numbers(2).text.toInt
+    }
 
     // grab the id too?
     val idLink = (block >> element("a")).attr("href")
@@ -191,8 +212,8 @@ object UrbanDeadModel {
 
     val profile = parseProfile(profileDoc.get, session)
 
-    val attributes = Some(CharacterAttributes(id, numbers.head, numbers(2), profile.level, profile.characterClass,
-      numbers(1), profile.description, profile.group))
+    val attributes = Some(CharacterAttributes(id, hp, ap, profile.level, profile.characterClass,
+      xp, profile.description, profile.group))
     session.attributes = attributes
     attributes
   }

@@ -148,15 +148,12 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         if(session.events.isDefined) mailIcon.mailCount.text = session.events.get.size.toString
         children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
 
-        if(session.attributes.isDefined) {
-          val attributes = session.attributes.get
-          hpBar.text.text = session.hpString()
-          hpBar.bar.progress = attributes.hpDouble()
-          apBar.text.text = session.apString()
-          apBar.bar.progress = session.apDouble()
-          hitsBar.text.text = s"Hits: ${session.hits}/${CharacterSession.maxDailyHits}"
-          hitsBar.bar.progress = session.hitsDouble()
-        }
+        hpBar.text.text = session.hpString()
+        hpBar.bar.progress = session.hpDouble()
+        apBar.text.text = session.apString()
+        apBar.bar.progress = session.apDouble()
+        hitsBar.text.text = s"Hits: ${session.hits}/${CharacterSession.maxDailyHits}"
+        hitsBar.bar.progress = session.hitsDouble()
 
         onMouseClicked = event => {
           if(event.getButton == MouseButton.PRIMARY) session.state.value match {
@@ -203,7 +200,6 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     UIModel.state = Main()
   }
 
-  // something is busted here
   def logout(): Unit = {
     session.get.resetBrowser()
     StatusBar.status = s"""logged out as "${session.get.username}""""

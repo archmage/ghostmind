@@ -57,14 +57,11 @@ class CharacterSessionBar(val session: CharacterSession) extends HBox {
   children = List(avatar, nameplate, barBox, xpLabel, growRegion, characterButton)
 
   def update(): Unit =  {
-    if(session.attributes.isDefined) {
-      val attributes = session.attributes.get
-      hpBar.text.text = session.hpString()
-      hpBar.bar.progress = attributes.hpDouble()
-      apBar.text.text = session.apString()
-      apBar.bar.progress = session.apDouble()
-      xpLabel.text = s"${session.attributes.get.xp.toString}xp"
-    }
+    hpBar.text.text = session.hpString()
+    hpBar.bar.progress = session.hpDouble()
+    apBar.text.text = session.apString()
+    apBar.bar.progress = session.apDouble()
+    xpLabel.text = s"${if(session.attributes.isDefined) session.attributes.get.xp.toString else 0}xp"
 
     nameplate.session = Some(session)
     nameplate.update()

@@ -10,8 +10,9 @@ import scalafx.beans.property.ObjectProperty
 import scala.collection.mutable.ListBuffer
 
 object CharacterSession {
+  val maxAp = 50
   val maxDailyHits: Int = 300
-  val dateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
+  val dateTimeFormatter = Constants.dateTimeFormatter
 }
 
 case class CharacterSession(
@@ -43,42 +44,53 @@ case class CharacterSession(
     browser = new JsoupBrowser(UrbanDeadModel.useragent)
   }
 
+  def hpValue(): Int = {
+    // eventually, have this be aware of Bodybuilding
+    if(attributes.isDefined) attributes.get.hp else hpMax()
+  }
+
+  def hpMax(): Int = {
+    // eventually, have this be aware of Bodybuilding
+    50
+  }
+
+  def hpDouble(): Double = {
+    Math.min(hpValue() / hpMax().doubleValue(), 1)
+  }
+
   def hpString(): String = {
-    s"HP: ${if(attributes.isEmpty) "???" else attributes.get.hp}/50"
+    s"HP: ${if(attributes.isEmpty) "???" else hpValue()}/${hpMax()}"
   }
 
   def apString(): String = {
-    s"AP: ${if(attributes.isEmpty) "???" else apCalculated()}/50"
+    s"AP: ${if(attributes.isEmpty) "???" else apCalculated()}/${CharacterSession.maxAp}"
   }
 
   def apCalculated(): Int = {
-    if(attributes.isEmpty) 50
+    if(attributes.isEmpty) CharacterSession.maxAp
     else {
+      // something in here is wrong, sadly
       val now = LocalDateTime.now().atZone(ZoneId.systemDefault())
       val apRecoveredLastHit = LocalDateTime.MIN.until(lastHit, ChronoUnit.MINUTES) / 30
       val apRecoveredNow = LocalDateTime.MIN.until(now, ChronoUnit.MINUTES) / 30
-      Math.min(50, attributes.get.ap + (apRecoveredNow - apRecoveredLastHit).intValue())
+      Math.min(CharacterSession.maxAp, attributes.get.ap + (apRecoveredNow - apRecoveredLastHit).intValue())
     }
   }
 
   def apDouble(): Double = {
-    apCalculated() / 50.0
+    Math.max(0, apCalculated()) / CharacterSession.maxAp.doubleValue()
   }
 }
 
 case class CharacterAttributes(
   id: Int,
-  hp: Int,
+  hp: Int, // make you optional, friendo
   ap: Int,
   level: Int,
   characterClass: String,
   xp: Int,
   description: String,
   group: String) {
-
-  def hpDouble(): Double = {
-    Math.min(hp / 50.0, 1)
-  }
 }
 
 sealed trait SessionState
