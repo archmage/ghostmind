@@ -4,7 +4,7 @@ import com.archmage.ghostmind.model.UrbanDeadModel
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
-import scalafx.scene.control.{Label, ScrollPane, Tab, TabPane}
+import scalafx.scene.control.{Label, Tab, TabPane}
 import scalafx.scene.layout.{BorderPane, StackPane, VBox}
 
 class MainBorderPane extends BorderPane {
@@ -12,7 +12,9 @@ class MainBorderPane extends BorderPane {
   this.id = "root"
 
   // higher-level organising elements
-  val leftTabPane = new TabPane
+  val leftTabPane = new TabPane {
+    style = "-fx-background-color: -darker-grey;"
+  }
   val rightTabPane = new TabPane
   val centreVBox = new VBox {
     padding = Insets(10)

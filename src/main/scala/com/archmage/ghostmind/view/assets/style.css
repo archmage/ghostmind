@@ -1,166 +1,145 @@
+* {
+    -darker-grey: #2a2a2a;
+    -back-grey: #333333;
+    -dark-grey: #6D6D6D;
+    -grey: grey;
+    -lighter-grey: #aaaaaa;
+    -white-text: #dddddd;
+    -less-white: #eeeeee;
+    -white: white;
+
+    -red-warn: #ff493f;
+    -hp-pink: #d6627f;
+    -ap-yellow: #baad6d;
+    -hits-purple: #9882ad;
+
+    -red-button: #c94040;
+    -red-button-hover: #e05e5e;
+    -red-button-click: #aa3434;
+
+    -red-warn-border: red;
+    -red-warn-background: #773b3c;
+
+    -suburb-safe: #65D880;
+    -suburb-intact: #7FB8FF;
+    -suburb-moderate: #EAED4B;
+    -suburb-dangerous: #FF9859;
+    -suburb-critical: #E85858;
+    -suburb-abandoned: #998C99;
+}
+
 #root {
-	-fx-background-color: #333333;
+	-fx-background-color: -back-grey;
 	-fx-padding: 1px;
 }
 #StatusBar {
-    -fx-background-color: #2a2a2a;
+    -fx-background-color: -darker-grey;
 }
 #GhostmindLogo {
     -fx-font-size: 1.7em;
-    -fx-text-fill: white;
+    -fx-text-fill: -white;
 }
 #Title {
     -fx-font-size: 1.5em;
-    -fx-text-fill: white;
+    -fx-text-fill: -white;
 }
 #Subtitle {
     -fx-font-size: 1.1em;
-    -fx-text-fill: #aaaaaa;
+    -fx-text-fill: -lighter-grey;
 }
 #RedWarnText {
     -fx-font-size: 1.1em;
-    -fx-text-fill: #ff493f;
+    -fx-text-fill: -red-warn;
     -fx-font-weight: bold;
 }
 #BoxHeading {
     -fx-font-size: 1.2em;
-    -fx-text-fill: #eeeeee;
+    -fx-text-fill: -less-white;
     -fx-font-weight: bold;
 }
 #WhiteText {
-    -fx-text-fill: #dddddd;
+    -fx-text-fill: -white-text;
 }
 #CharacterBoxStatusText {
     -fx-font-weight: bold;
 }
 #MailCount {
     -fx-font-size: 1.1em;
-    -fx-text-fill: #ffffff;
+    -fx-text-fill: -white;
     -fx-font-weight: bold;
 }
 #MailCount .text {
-    -fx-stroke: #ff493f;
+    -fx-stroke: -red-warn;
     -fx-stroke-width: 2px;
     -fx-stroke-type: outside;
 }
 #DottedGreyBorder {
     -fx-border-style: segments(12, 6);
-    -fx-border-color: grey;
+    -fx-border-color: -grey;
     -fx-border-width: 2px;
 }
 #SolidGreyBorder {
     -fx-border-style: solid;
-    -fx-border-color: grey;
+    -fx-border-color: -grey;
     -fx-border-width: 2px;
 }
 #RedWarnBox {
     -fx-border-style: solid;
-    -fx-border-color: #dd0000;
+    -fx-border-color: -red-warn-border;
     -fx-border-width: 2px;
-    -fx-background-color: #773b3c;
+    -fx-background-color: -red-warn-background;
 }
 #RedXButton {
-    -fx-background-color: #c94040;
+    -fx-background-color: -red-button;
     -fx-background-radius:0;
     -fx-padding: 3 7 3 7;
-    -fx-text-fill: white;
+    -fx-text-fill: -white;
     -fx-font-weight: bold;
     -fx-font-size: 12px;
 }
 #RedXButton:hover {
-    -fx-background-color: #e05e5e;
+    -fx-background-color: -red-button-hover;
 }
 #RedXButton:pressed {
-    -fx-background-color: #aa3434;
+    -fx-background-color: -red-button-click;
 }
 
 #ProgressBarText {
-    -fx-text-fill: #dddddd;
+    -fx-text-fill: -white-text;
     -fx-font-weight: bold;
     -fx-font-size: 10px;
 }
 
 #OutlineProgressBarText {
-    -fx-text-fill: #dddddd;
+    -fx-text-fill: -white-text;
     -fx-font-weight: bold;
 }
 #OutlineProgressBarText .text {
-    -fx-stroke: #333333;
+    -fx-stroke: -darker-grey;
     -fx-stroke-width: 1px;
     -fx-stroke-type: outside;
 }
 
 #HpBar {
-    -fx-accent: #d6627f;
+    -fx-accent: -hp-pink;
 }
 
 #ApBar {
-    -fx-accent: #BAAD6D;
+    -fx-accent: -ap-yellow;
 }
 
 #HitsBar {
-    -fx-accent: #9882ad;
+    -fx-accent: -hits-purple;
 }
 
-.progress-bar {
-    -fx-box-border: #2a2a2a;
-}
 .progress-bar > .bar {
     -fx-padding: 8px;
 }
 .progress-bar > .track {
-    -fx-control-inner-background: #6D6D6D;
+    -fx-control-inner-background: -dark-grey;
 }
 
 .progress-bar > .bar, .progress-bar > .track {
     -fx-background-insets: 0;
     -fx-background-radius: 0;
-}
-
-
-.table-view {
-   -fx-background-color: transparent;
-}
-.table-view:focused {
-    -fx-background-color: transparent;
-}
-.table-view .column-header-background {
-    -fx-background-color: linear-gradient(#131313 0%, #424141 100%);
-}
-.table-view .column-header-background .label {
-    -fx-background-color: transparent;
-    -fx-text-fill: white;
-}
-.table-view .column-header {
-    -fx-background-color: transparent;
-}
-.table-view .table-cell {
-    -fx-text-fill: white;
-}
-.table-row-cell {
-    -fx-background-color: -fx-table-cell-border-color, #616161;
-    -fx-background-insets: 0, 0 0 1 0;
-    -fx-padding: 0.0em; /* 0 */
-}
-.table-row-cell:odd {
-    -fx-background-color: -fx-table-cell-border-color, #424242;
-    -fx-background-insets: 0, 0 0 1 0;
-    -fx-padding: 0.0em; /* 0 */
-}
-.table-row-cell:selected {
-    -fx-background-color: #005797;
-    -fx-background-insets: 0;
-    -fx-background-radius: 1;
-}
-.table-view > .virtual-flow > .scroll-bar:vertical,
-.table-view > .virtual-flow > .scroll-bar:vertical > .track,
-.table-view > .virtual-flow > .scroll-bar:vertical > .track-background,
-.table-view > .virtual-flow > .scroll-bar:horizontal,
-.table-view > .virtual-flow > .scroll-bar:horizontal > .track,
-.table-view > .virtual-flow > .scroll-bar:horizontal > .track-background {
-    -fx-background-color: transparent;
-}
-.table-view > .virtual-flow > .scroll-bar > .increment-button,
-.table-view > .virtual-flow > .scroll-bar > .decrement-button {
-    -fx-opacity: 0;
 }

@@ -155,6 +155,10 @@ object UrbanDeadModel {
     parseLocationBlock(locationBlock, session)
   }
 
+  // THE LOGIC ON THIS IS BUGGED
+  // FIX IT TODAY
+  // appending does bad shit
+  // this problem sucks to solve because of the load/save costs attached :(
   def parseEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
     val eventsElement = doc >?> element("ul")
     if(eventsElement.isDefined) {
