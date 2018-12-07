@@ -2,10 +2,9 @@ package com.archmage.ghostmind.model
 
 import java.io.File
 
-import com.archmage.ghostmind.view.{Colors, MapGridViewDataSource}
+import com.archmage.ghostmind.view.MapGridViewDataSource
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
-import scalafx.scene.paint.Color
 
 import scala.io.Source
 

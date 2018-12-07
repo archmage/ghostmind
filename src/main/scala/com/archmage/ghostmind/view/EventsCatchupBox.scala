@@ -2,8 +2,14 @@ package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.CharacterSession
 import scalafx.geometry.Insets
-import scalafx.scene.control.Label
+import scalafx.scene.control.{Label, ScrollPane}
 import scalafx.scene.layout.VBox
+
+class EventsCatchupPane(val session: CharacterSession) extends ScrollPane {
+  id = "root"
+  content = new EventsCatchupBox(session)
+  // change the scroll speed, somehow
+}
 
 class EventsCatchupBox(val session: CharacterSession) extends VBox {
 

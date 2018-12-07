@@ -93,8 +93,32 @@ object UrbanDeadModel {
   }
 
   def loadEvents(session: CharacterSession): Unit = {
-    val events = ListBuffer[Event]()
-    session.events = Some(events)
+    val file = new File(s"$characterDirectory/${session.eventsLogFilename()}")
+    if(file.exists()) {
+      val stream = Source.fromFile(file)
+      val string = stream.getLines.mkString
+      if(!string.isEmpty) {
+        val parsed = parse(string)
+        val events = (parsed \\ "events").extract[ListBuffer[PersistentEvent]].map { _.decode() }
+        stream.close()
+        session.events = Some(events)
+      }
+      else {
+        stream.close()
+      }
+    }
+  }
+
+  def saveEvents(session: CharacterSession): Unit = {
+    val mapped = session.events.getOrElse(ListBuffer()).map { event => event.encode() }
+    val eventsJson = write(mapped)
+
+    val characterDirectoryFile = new File(characterDirectory)
+    if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
+    val pw = new PrintWriter(new FileOutputStream(
+      new File(s"$characterDirectory/${session.eventsLogFilename()}")))
+    pw.write(s"""{"events":$eventsJson}""")
+    pw.close()
   }
 
   def parseContactList(doc: JsoupDocument, session: CharacterSession): List[Contact] = {
@@ -145,7 +169,7 @@ object UrbanDeadModel {
       return
     }
 
-    parseEvents(map.get, session)
+    parseNewEvents(map.get, session)
 
     val gtElements = map.get >> elementList(".gt")
     val statusBlock = gtElements.head
@@ -155,11 +179,7 @@ object UrbanDeadModel {
     parseLocationBlock(locationBlock, session)
   }
 
-  // THE LOGIC ON THIS IS BUGGED
-  // FIX IT TODAY
-  // appending does bad shit
-  // this problem sucks to solve because of the load/save costs attached :(
-  def parseEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
+  def parseNewEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
     val eventsElement = doc >?> element("ul")
     if(eventsElement.isDefined) {
       val events = eventsElement >> elementList("li")
@@ -171,15 +191,7 @@ object UrbanDeadModel {
         session.events.get += event
       }
 
-      val mapped = session.events.getOrElse(ListBuffer()).map { event => event.encode() }
-      val eventsJson = write(mapped)
-
-      val characterDirectoryFile = new File(characterDirectory)
-      if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
-      val pw = new PrintWriter(new FileOutputStream(
-        new File(s"$characterDirectory/${session.username}-log.json"), true))
-      pw.append(s"""{"events":$eventsJson}""")
-      pw.close()
+      saveEvents(session)
     }
   }
 
@@ -257,6 +269,9 @@ object UrbanDeadModel {
       StatusBar.status = "loading skills..."
       val skillsDoc = request(s"$baseUrl/$skillsUrl", session)
       session.skills = Some(parseSkills(skillsDoc.get))
+
+      StatusBar.status = "loading events log..."
+      loadEvents(session)
 
       StatusBar.status = "checking map.cgi..."
       parseMap(session)

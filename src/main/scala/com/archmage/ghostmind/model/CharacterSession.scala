@@ -40,6 +40,8 @@ case class CharacterSession(
       Some(lastHit.format(CharacterSession.dateTimeFormatter)))
   }
 
+  def eventsLogFilename(): String = s"$username-log.json"
+
   def resetBrowser(): Unit = {
     browser = new JsoupBrowser(UrbanDeadModel.useragent)
   }
@@ -94,6 +96,7 @@ case class CharacterAttributes(
 }
 
 sealed trait SessionState
+// TODO make these case objects and drop the parentheses
 case class Offline() extends SessionState
 case class Connecting() extends SessionState
 case class Online() extends SessionState

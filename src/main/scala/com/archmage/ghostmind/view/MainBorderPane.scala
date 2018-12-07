@@ -26,7 +26,7 @@ class MainBorderPane extends BorderPane {
   val logoBox = new LogoBox
   val charactersPane = new CharactersPane
   var sessionBar: CharacterSessionBar = _
-  var eventsCatchupBox: EventsCatchupBox = _
+  var eventsCatchupPane: EventsCatchupPane = _
   val skillsLabel = new Label {
     id = "WhiteText"
     text = "Skills!"
@@ -71,9 +71,9 @@ class MainBorderPane extends BorderPane {
           bottom = statusBar
         case Main() =>
           sessionBar = new CharacterSessionBar(UrbanDeadModel.activeSession.get)
-          eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
+          eventsCatchupPane = new EventsCatchupPane(UrbanDeadModel.activeSession.get)
           centreVBox.alignment = Pos.TopCenter
-          centreVBox.children = eventsCatchupBox
+          centreVBox.children = eventsCatchupPane
 
           top = sessionBar
           left = leftTabPane
