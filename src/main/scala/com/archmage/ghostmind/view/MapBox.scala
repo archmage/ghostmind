@@ -1,7 +1,7 @@
 package com.archmage.ghostmind.view
 
 import scalafx.Includes._
-import com.archmage.ghostmind.model.Suburb
+import com.archmage.ghostmind.model.{Block, Suburb}
 import scalafx.beans.property.{BooleanProperty, StringProperty}
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
@@ -20,12 +20,21 @@ class MapBox extends VBox {
   val searchField = new GhostField {
     promptText = "search"
   }
+
+  val blockName = new Label {
+    id = "BoxHeading"
+    text = "Block Name"
+  }
+  val blockGrid: MapGridView = new MapGridView(Block.blocks, 100, (_, _) => (), () => ())
+
   val suburbName = new Label {
     id = "BoxHeading"
     text <== when (suburbHover) choose suburbHoverName otherwise baseSuburbText
   }
-  val suburbGrid = new MapGridView(Suburb.suburbs, (x, y) => {
-    suburbHoverName.value = Suburb.suburbs(x + y * 10).name
+  val suburbGrid = new MapGridView(Suburb.suburbs, 10, (x, y) => {
+    blockGrid.offsetX.value = x * 10
+    blockGrid.offsetY.value = y * 10
+    suburbHoverName.value = Suburb.suburbs.lift(x + y * 10).getOrElse(Suburb.default).name
     suburbHover.value = true
   }, () => {
     suburbHoverName.value = "Suburb"
@@ -33,16 +42,17 @@ class MapBox extends VBox {
   })
 
   suburbGrid.alignment <== alignment
+  blockGrid.alignment <== alignment
 
   searchField.text.onChange { (_, _, newValue) => {
     var matchCount = 0
     var lastMatch = ""
     suburbGrid.cells.foreach { cell =>
-      val doesMatch = !newValue.isEmpty && cell.suburb.name.toLowerCase.contains(newValue.toLowerCase)
+      val doesMatch = !newValue.isEmpty && cell.dataSource.getName.toLowerCase.contains(newValue.toLowerCase)
       cell.selected.value = doesMatch
       if(doesMatch) {
         matchCount += 1
-        lastMatch = cell.suburb.name
+        lastMatch = cell.dataSource.getName
       }
     }
     baseSuburbText.value = matchCount match {
@@ -52,5 +62,5 @@ class MapBox extends VBox {
     }
   }}
 
-  children = List(searchField, suburbName, suburbGrid)
+  children = List(searchField, suburbName, suburbGrid, blockName, blockGrid)
 }

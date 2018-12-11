@@ -27,4 +27,5 @@ object MainView extends JFXApp {
       root = mainBorderPane
     }
   }
+  stage.resizable = false
 }

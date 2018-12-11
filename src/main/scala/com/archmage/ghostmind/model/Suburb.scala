@@ -33,10 +33,14 @@ object Suburb {
     }
     else List[Suburb]()
   }
+
+  val default = Suburb("Blanktown")
 }
 
 case class Suburb(name: String) extends MapGridViewDataSource {
   var danger: Option[DangerLevel] = Some(Moderate)
+
+  override def getName: String = name
 
   override def colourStyle(): String =
     s"-suburb-${danger.getOrElse(Abandoned).toString.toLowerCase}"
