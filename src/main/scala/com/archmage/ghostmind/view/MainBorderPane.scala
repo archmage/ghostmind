@@ -4,6 +4,7 @@ import com.archmage.ghostmind.model.UrbanDeadModel
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
+import scalafx.scene.control.TabPane.TabClosingPolicy
 import scalafx.scene.control.{Label, Tab, TabPane}
 import scalafx.scene.layout.{BorderPane, StackPane, VBox}
 
@@ -14,8 +15,12 @@ class MainBorderPane extends BorderPane {
   // higher-level organising elements
   val leftTabPane = new TabPane {
     style = "-fx-background-color: -darker-grey;"
+    tabClosingPolicy = TabClosingPolicy.Unavailable
   }
-  val rightTabPane = new TabPane
+  val rightTabPane = new TabPane {
+    style = "-fx-background-color: -darker-grey;"
+    tabClosingPolicy = TabClosingPolicy.Unavailable
+  }
   val centreVBox = new VBox {
     padding = Insets(10)
     spacing = 10
@@ -31,15 +36,13 @@ class MainBorderPane extends BorderPane {
     id = "WhiteText"
     text = "Skills!"
   }
-  val mapBox = new MapBox
+  var mapBox: MapBox = _
   val contactsBox = new ContactsBox
   val statusBar = new StatusBar
 
   // assembly
   skillsStackPane.children = skillsLabel
-  leftTabPane.tabs = List(
-    tab("Maps", mapBox)
-  )
+
   rightTabPane.tabs = List(
     tab("Contacts", contactsBox),
     tab("Skills", skillsStackPane)
@@ -71,9 +74,15 @@ class MainBorderPane extends BorderPane {
           bottom = statusBar
         case Main() =>
           sessionBar = new CharacterSessionBar(UrbanDeadModel.activeSession.get)
+
           eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
           centreVBox.alignment = Pos.TopCenter
           centreVBox.children = eventsCatchupBox
+
+          mapBox = new MapBox(UrbanDeadModel.activeSession.get)
+          leftTabPane.tabs = List(
+            tab("Maps", mapBox)
+          )
 
           top = sessionBar
           left = leftTabPane

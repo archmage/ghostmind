@@ -26,6 +26,16 @@
     -suburb-dangerous: #FF9859;
     -suburb-critical: #E85858;
     -suburb-abandoned: #998C99;
+
+    -block-carpark: #666666;
+    -block-cemetery: #A1CB9B;
+    -block-zoo: #936557;
+    -block-monument: #666666;
+    -block-park: #A1CB9B;
+    -block-street: #565656;
+    -block-wasteland: #756656;
+
+    -block-building: #ABACDB;
 }
 
 #root {
