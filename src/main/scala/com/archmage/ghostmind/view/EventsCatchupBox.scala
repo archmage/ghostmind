@@ -32,7 +32,6 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
       content = new VBox {
         children = events
         spacing = 10
-        maxWidth = 400
       }
     })
   }

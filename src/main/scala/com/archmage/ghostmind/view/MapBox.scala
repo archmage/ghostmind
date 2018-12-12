@@ -1,6 +1,7 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.{Block, CharacterSession, Suburb}
+import scalafx.beans.property.IntegerProperty
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
 import scalafx.scene.layout.VBox
@@ -15,11 +16,17 @@ class MapBox(val session: CharacterSession) extends VBox {
   padding = Insets(10)
   spacing = 10
 
+  // the suburb for blockGrid to show
+  var activeSuburb = IntegerProperty.apply(0)
+
+  // search stuff
   var suburbMatchCount: Option[Int] = None
-  var lastSuburbMatch: Option[(MapGridRectangle, Int)] = None
+  var lastSuburbMatch: Option[Int] = None
+
+  var blockMatchCount: Option[Int] = None
+  var lastBlockMatch: Option[Int] = None
 
   // ui stuff
-
   val searchField = new GhostField {
     promptText = "search"
   }
@@ -27,32 +34,89 @@ class MapBox(val session: CharacterSession) extends VBox {
     id = "WhiteText"
     text = MapBox.defaultBlockLabelText
   }
-  val blockGrid: MapGridView = new MapGridView(Block.blocks, 100, (_, _) => (), () => ())
+  val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
   val suburbLabel = new Label {
     id = "BoxHeading"
     text = defaultSuburbLabelText
   }
-  val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10, (x, y) => {
-    if(suburbGrid.selectedCell.value.isEmpty) {
-      blockGrid.offsetX.value = x * 10
-      blockGrid.offsetY.value = y * 10
+  // buncha closures to do activeSuburb changes
+  val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10, (_, _) => {
+    if(suburbGrid.selectedCell.value.isEmpty) activeSuburb.value = suburbGrid.lastHoveredCell.value.get
+  }, () => {
+    resetActiveSuburb()
+  }, (_, _) => {
+    activeSuburb.value = suburbGrid.selectedCell.value.get
+  }, () => {
+    activeSuburb.value = suburbGrid.lastHoveredCell.value.get
+  })
+
+  def init(): Unit = {
+    suburbGrid.alignment <== alignment
+    blockGrid.alignment <== alignment
+
+    activeSuburb.onChange { (_, _, _) => updateBlockGridOffset() }
+
+    suburbGrid.lastHoveredCell.onChange { (_, _, _) => update() }
+    suburbGrid.selectedCell.onChange { (_, _, _) => update() }
+    blockGrid.lastHoveredCell.onChange { (_, _, _) => update() }
+    blockGrid.selectedCell.onChange { (_, _, _) => update() }
+
+    searchField.text.onChange { (_, _, newValue) => {
+      // reset matches
+      suburbMatchCount = None
+      if(lastSuburbMatch.isDefined) {
+        suburbGrid.cells(lastSuburbMatch.get).highlighted.value = false
+        lastSuburbMatch = None
+      }
+      blockMatchCount = None
+
+      // if search text isn't empty...
+      val cleanString = newValue.trim.toLowerCase
+      if(!cleanString.isEmpty) {
+        // do a suburb search
+        suburbMatchCount = Some(0)
+        suburbGrid.cells.zipWithIndex.foreach { cell =>
+          val doesMatch = cell._1.dataSource.value.getName.toLowerCase.contains(cleanString)
+          cell._1.highlighted.value = doesMatch
+          if(doesMatch) {
+            suburbMatchCount = Some(suburbMatchCount.get + 1)
+            lastSuburbMatch = Some(cell._2)
+          }
+        }
+        // if there's only one match, make it the active suburb!
+        if(getSingleSuburbMatch.isDefined) {
+            activeSuburb.value = lastSuburbMatch.get
+        }
+
+        // now do a block search!
+        val blockSearchResult = Block.search(cleanString)
+        blockMatchCount = Some(blockSearchResult.size)
+      }
+      else {
+        suburbGrid.cells.foreach { cell => cell.highlighted.value = false }
+        resetActiveSuburb()
+      }
+      update()
+    }}
+
+    searchField.onAction = _ => {
+      // select if there's a single match!
+      if(getSingleSuburbMatch.isDefined) {
+        suburbGrid.cells(lastSuburbMatch.get).highlighted.value = false
+        suburbGrid.selectCell(lastSuburbMatch.get)
+        searchField.text = ""
+      }
     }
-  }, () => ())
 
-  suburbGrid.alignment <== alignment
-  blockGrid.alignment <== alignment
-
-  suburbGrid.lastHoveredCell.onChange { (_, _, _) => update() }
-  suburbGrid.selectedCell.onChange { (_, _, _) => update() }
-  blockGrid.lastHoveredCell.onChange { (_, _, _) => update() }
-  blockGrid.selectedCell.onChange { (_, _, _) => update() }
+    children = List(searchField, suburbLabel, suburbGrid, blockLabel, blockGrid)
+  }
 
   def defaultSuburbLabelText: String = session.username
 
-  def getSearchResult(): Option[String] = {
+  def getSuburbSearchResult: Option[String] = {
     if(suburbMatchCount.isDefined) {
       if(suburbMatchCount.get == 1 && lastSuburbMatch.isDefined) {
-        Some(lastSuburbMatch.get._1.dataSource.value.getName)
+        Some(suburbGrid.cells(lastSuburbMatch.get).dataSource.value.getName)
       }
       else Some(s"${if(suburbMatchCount.get <= 0) "no" else suburbMatchCount.get} matches${
         if(suburbMatchCount.get > 0) " found" else ""}")
@@ -60,19 +124,50 @@ class MapBox(val session: CharacterSession) extends VBox {
     else None
   }
 
+  def getBlockSearchResult: Option[String] = {
+    if(blockMatchCount.isDefined) {
+      if(blockMatchCount.get == 1) {
+        Some("Specific Block!")
+      }
+      else Some(s"${if(blockMatchCount.get <= 0) "no" else blockMatchCount.get} matches${
+        if(blockMatchCount.get > 0) " found" else ""}")
+    }
+    else None
+  }
+
+  def getSingleSuburbMatch: Option[Int] = {
+    if(suburbMatchCount.isDefined && suburbMatchCount.get == 1 && lastSuburbMatch.isDefined) lastSuburbMatch
+    else None
+  }
+
+  def updateBlockGridOffset(): Unit = {
+    val (x, y) = MapGridView.cellCoordinatesFromIndex(activeSuburb.value)
+    blockGrid.offsetX.value = x * 10
+    blockGrid.offsetY.value = y * 10
+  }
+
+  def resetActiveSuburb(): Unit = {
+    if(suburbGrid.lastHoveredCell.value.isDefined) activeSuburb.value = suburbGrid.lastHoveredCell.value.get
+    else if(suburbGrid.selectedCell.value.isDefined) activeSuburb.value = suburbGrid.selectedCell.value.get
+    else {
+      // activeSuburb.value = session.suburb!
+    }
+  }
+
   def update(): Unit = {
+    // update suburb label text
     suburbLabel.text = {
       // hovered cell
       if(suburbGrid.lastHoveredCell.value.isDefined) {
-        suburbGrid.lastHoveredCell.value.get.dataSource.value.getName
+        suburbGrid.cells(suburbGrid.lastHoveredCell.value.get).dataSource.value.getName
       }
       else {
         // search results
-        val searchResultString = getSearchResult()
+        val searchResultString = getSuburbSearchResult
         if(searchResultString.isDefined) searchResultString.get
         else {
           // selected cell
-          val activeName = suburbGrid.getActiveName()
+          val activeName = suburbGrid.getActiveName
           if(activeName.isDefined) activeName.get
           // TODO session's current suburb
           else defaultSuburbLabelText
@@ -80,44 +175,14 @@ class MapBox(val session: CharacterSession) extends VBox {
       }
     }
 
-    val blockText: Option[String] = blockGrid.getActiveName()
-
+    // update block label
+    val blockText: Option[String] = {
+      val searchResult = getBlockSearchResult
+      if(searchResult.isDefined) searchResult
+      else blockGrid.getActiveName
+    }
     blockLabel.text = if(blockText.isDefined) blockText.get else MapBox.defaultBlockLabelText
-
-    if(suburbMatchCount.isDefined && suburbMatchCount.get == 1 && lastSuburbMatch.isDefined) {
-      blockGrid.offsetX.value = 10 * (lastSuburbMatch.get._2 % suburbGrid.dataSourceWidth)
-      blockGrid.offsetY.value = 10 * (lastSuburbMatch.get._2 / suburbGrid.dataSourceWidth)
-    }
   }
 
-  searchField.text.onChange { (_, _, newValue) => {
-    suburbMatchCount = None
-    if(lastSuburbMatch.isDefined) lastSuburbMatch.get._1.highlighted.value = false
-    lastSuburbMatch = None
-
-    if(!newValue.trim.isEmpty) {
-      suburbMatchCount = Some(0)
-      suburbGrid.cells.zipWithIndex.foreach { cell =>
-        val doesMatch = cell._1.dataSource.value.getName.toLowerCase.contains(newValue.trim.toLowerCase)
-        cell._1.highlighted.value = doesMatch
-        if(doesMatch) {
-          suburbMatchCount = Some(suburbMatchCount.get + 1)
-          lastSuburbMatch = Some(cell)
-        }
-      }
-      // block search?
-    }
-    else suburbGrid.cells.foreach { cell => cell.highlighted.value = false }
-    update()
-  }}
-
-  searchField.onAction = _ => {
-    if(suburbMatchCount.isDefined && suburbMatchCount.get == 1 && lastSuburbMatch.isDefined) {
-      lastSuburbMatch.get._1.highlighted.value = false
-      suburbGrid.selectCell(lastSuburbMatch.get._1)
-      searchField.text = ""
-    }
-  }
-
-  children = List(searchField, suburbLabel, suburbGrid, blockLabel, blockGrid)
+  init()
 }

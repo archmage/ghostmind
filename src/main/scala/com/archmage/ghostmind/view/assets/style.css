@@ -20,6 +20,7 @@
     -red-warn-border: red;
     -red-warn-background: #773b3c;
 
+    /* suburbs */
     -suburb-safe: #65D880;
     -suburb-intact: #7FB8FF;
     -suburb-moderate: #EAED4B;
@@ -27,15 +28,52 @@
     -suburb-critical: #E85858;
     -suburb-abandoned: #998C99;
 
-    -block-carpark: #666666;
+    /* non-building blocks */
+    -block-carpark: #444444;
     -block-cemetery: #A1CB9B;
-    -block-zoo: #936557;
-    -block-monument: #666666;
+    -block-monument: #444444;
     -block-park: #A1CB9B;
-    -block-street: #565656;
-    -block-wasteland: #756656;
+    -block-street: #444444;
+    -block-wasteland: #444444;
+    -block-zoo: #6e4c41;
 
-    -block-building: #ABACDB;
+    /* fort blocks */
+    -block-armoury: #878787;
+    -block-barracks: #877666;
+    -block-exerciseyard: #988776;
+    -block-gatehouse: #989898;
+    -block-infirmary: #FF9898;
+    -block-storehouse: #989898;
+    -block-trainingground: #769876;
+    -block-vehicledepot: #367636;
+
+    /* buildings blocks */
+    -block-autorepair: #ED9E55;
+    -block-bank: #666666;
+    -block-building: #666666;
+    -block-cathedral: #ffffff;
+    -block-church: #ffffff;
+    -block-cinema: #212121;
+    -block-club: #3f003e;
+    -block-enclosure: #936557;
+    -block-factory: #e8e433;
+    -block-firestation: #E85858;
+    -block-hospital: #FF9898;
+    -block-hotel: #666666;
+    -block-junkyard: #666666;
+    -block-largechurch: #ffffff;
+    -block-library: #666666;
+    -block-mall: #27c6bc;
+    -block-mansion: #720b50;
+    -block-museum: #666666;
+    -block-police: #436eb2;
+    -block-powerstation: #e0b01f;
+    -block-pub: #666666;
+    -block-railway: #666666;
+    -block-school: #666666;
+    -block-stadium: #42b740;
+    -block-tower: #666666;
+    -block-warehouse: #a0935e;
 }
 
 #root {

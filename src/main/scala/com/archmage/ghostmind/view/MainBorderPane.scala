@@ -1,6 +1,6 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.UrbanDeadModel
+import com.archmage.ghostmind.model.{Block, Suburb, UrbanDeadModel}
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
@@ -95,6 +95,9 @@ class MainBorderPane extends BorderPane {
 
   // init stuff
   def init(): Unit = {
+    // force a load of blocks and suburbs straight away
+    Block.blocks
+    Suburb.suburbs
     UrbanDeadModel.loadCharacters(() => {
       charactersPane.children = UrbanDeadModel.sessions.zipWithIndex.map { session =>
         new CharacterBox(session._1, session._2)

@@ -53,6 +53,14 @@ case class CharacterSession(
 
   def hpMax(): Int = {
     // eventually, have this be aware of Bodybuilding
+
+    /*
+    attributes.hp becomes optional
+    when parsing from map.cgi, if it's not there, defer to existing hp value
+    if _it's_ not there, return None
+    parse None as ??? for text and 100% (50 or 60 with Bodybuilding) for number things
+     */
+
     50
   }
 
@@ -96,7 +104,7 @@ case class CharacterAttributes(
 }
 
 sealed trait SessionState
-// TODO make these case objects and drop the parentheses
+// TODO make these case objects and drop the parenthesess
 case class Offline() extends SessionState
 case class Connecting() extends SessionState
 case class Online() extends SessionState

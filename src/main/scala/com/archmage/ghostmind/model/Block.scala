@@ -30,6 +30,11 @@ object Block {
     }
     else List[Block]()
   }
+
+  def search(string: String): List[Block] = {
+    val cleanString = string.trim.toLowerCase
+    blocks.filter(block => block.name.toLowerCase.contains(cleanString))
+  }
 }
 
 case class Block(x: Int, y: Int, name: String, var blockType: Option[String]) extends MapGridViewDataSource {
@@ -38,68 +43,3 @@ case class Block(x: Int, y: Int, name: String, var blockType: Option[String]) ex
   override def colourStyle(): String =
     s"-block-${blockType.getOrElse("building").toLowerCase}"
 }
-/*
-sealed class BlockType extends SomeStrat {
-  override def style(): String = "blah"
-}
-// buildings
-//case object Cathedral extends BlockType
-//case object ChurchLarge extends BlockType
-//case object Mall extends BlockType
-//case object Mansion extends BlockType
-//case object PowerStation extends BlockType
-//case object Stadium extends BlockType
-//case object Fort extends BlockType
-//case object ZooEnclosure extends BlockType
-//case object AutoRepair extends BlockType
-//case object Bank extends BlockType
-case object Building extends BlockType {
-  override def style(): String = "building"
-}
-//case object NecroTech extends BlockType
-//case object Church extends BlockType
-//case object Cinema extends BlockType
-//case object Club extends BlockType
-//case object Factory extends BlockType
-//case object FireStation extends BlockType
-//case object Hospital extends BlockType
-//case object Hotel extends BlockType
-//case object Junkyard extends BlockType
-//case object Library extends BlockType
-//case object Museum extends BlockType
-//case object PoliceDepartment extends BlockType
-//case object Pub extends BlockType
-//case object RailwayStation extends BlockType
-//case object School extends BlockType
-//case object Tower extends BlockType
-//case object Warehouse extends BlockType
-
-// outdoors
-case object Carpark extends BlockType {
-  override def style(): String = "carpark"
-}
-case object Cemetery extends BlockType {
-  override def style(): String = "cemetery"
-}
-case object Zoo extends BlockType {
-  override def style(): String = "zoo"
-}
-//case object ExerciseYard extends BlockType
-case object Monument extends BlockType {
-  override def style(): String = "monument"
-}
-case object Park extends BlockType {
-  override def style(): String = "park"
-}
-case object Street extends BlockType {
-  override def style(): String = "street"
-}
-//case object TrainingGround extends BlockType
-case object Wasteland extends BlockType {
-  override def style(): String = "wasteland"
-}
-
-trait SomeStrat {
-  def style(): String
-}
-*/
