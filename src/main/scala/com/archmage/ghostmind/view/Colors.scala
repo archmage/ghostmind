@@ -10,8 +10,6 @@ object Colors {
   val characterBoxNormal = Color(0.22, 0.22, 0.22, 1)
   val characterBoxHighlight = Color(0.3, 0.3, 0.3, 1)
 
-
-
   val normalBackground =
     new Background(Array(new BackgroundFill(Colors.characterBoxNormal, CornerRadii.Empty, Insets.Empty)))
   val hoverBackground =

@@ -1,6 +1,7 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model._
+import com.archmage.ghostmind.view.assets.AssetManager
 import javafx.scene.input.MouseButton
 import scalafx.Includes._
 import scalafx.application.Platform
@@ -26,7 +27,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
   // session absent
   val plusIcon = new ImageView{
-    image = new Image(getClass.getResourceAsStream("assets/plus.png"))
+    image = AssetManager.plusImage
     fitWidth = 50
     fitHeight = 50
   }
@@ -120,7 +121,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           }
           catch {
             case _: Exception =>
-              avatar.image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
+              avatar.image = AssetManager.humanImage
           }
         }
 

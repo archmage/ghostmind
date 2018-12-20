@@ -6,7 +6,7 @@ import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
 import scalafx.scene.control.TabPane.TabClosingPolicy
 import scalafx.scene.control.{Label, Tab, TabPane}
-import scalafx.scene.layout.{BorderPane, StackPane, VBox}
+import scalafx.scene.layout._
 
 class MainBorderPane extends BorderPane {
 
@@ -30,7 +30,7 @@ class MainBorderPane extends BorderPane {
   // actual interface elements
   val logoBox = new LogoBox
   val charactersPane = new CharactersPane
-  var sessionBar: CharacterSessionBar = _
+  var sessionBar: CharacterBar = _
   var eventsCatchupBox: EventsCatchupBox = _
   val skillsLabel = new Label {
     id = "WhiteText"
@@ -73,11 +73,11 @@ class MainBorderPane extends BorderPane {
           center = centreVBox
           bottom = statusBar
         case Main() =>
-          sessionBar = new CharacterSessionBar(UrbanDeadModel.activeSession.get)
+          sessionBar = new CharacterBar(UrbanDeadModel.activeSession.get)
 
           eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
           centreVBox.alignment = Pos.TopCenter
-          centreVBox.children = eventsCatchupBox
+          centreVBox.children = List(eventsCatchupBox)
 
           mapBox = new MapBox(UrbanDeadModel.activeSession.get)
           leftTabPane.tabs = List(

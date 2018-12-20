@@ -6,7 +6,7 @@ import scalafx.scene.control.{Button, Label}
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, Priority, Region, VBox}
 
-class CharacterSessionBar(val session: CharacterSession) extends HBox {
+class CharacterBar(val session: CharacterSession) extends HBox {
 
   alignment = Pos.CenterLeft
   spacing = 10

@@ -182,13 +182,14 @@ object UrbanDeadModel {
   def parseNewEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
     val eventsElement = doc >?> element("ul")
     if(eventsElement.isDefined) {
-      val events = eventsElement >> elementList("li")
-//      val eventsText = events.get.map { _.innerHtml }
-      val eventsText = events.get.map { _.text }
-      for(line <- eventsText) {
+      val events = (eventsElement >> elementList("li")).get // if this breaks i'm a moron
+      for(event <- events) {
         if(session.events.isEmpty) session.events = Some(ListBuffer())
-        val event = Event(Event.parseTimeText(line), line)
-        session.events.get += event
+        val eventInstance = Event(
+          Event.parseTimeText(event.text),
+          event,
+          Event.parseEventType(event))
+        session.events.get += eventInstance
       }
 
       saveEvents(session)
