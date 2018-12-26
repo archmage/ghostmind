@@ -20,4 +20,18 @@ object AssetManager {
   val eventDeath = new Image(getClass.getResourceAsStream("grave.png"))
   val eventSpeech = new Image(getClass.getResourceAsStream("love-speech.png"))
   val eventStand = new Image(getClass.getResourceAsStream("stand.png"))
+
+  val eventClaw = new Image(getClass.getResourceAsStream("claw.png"))
+  val eventBite = new Image(getClass.getResourceAsStream("bite.png"))
+  val eventInfect = new Image(getClass.getResourceAsStream("infect.png"))
+  val eventAlarm = new Image(getClass.getResourceAsStream("alarm.png"))
+  val eventRadio = new Image(getClass.getResourceAsStream("radio.png"))
+  val eventLightsOn = new Image(getClass.getResourceAsStream("light-on.png"))
+  val eventLightsOff = new Image(getClass.getResourceAsStream("light-off.png"))
+  val eventFlare = new Image(getClass.getResourceAsStream("firework.png"))
+  val eventMegaphone = new Image(getClass.getResourceAsStream("megaphone.png"))
+  val eventRefuel = new Image(getClass.getResourceAsStream("gas.png"))
+
+  val eventExtract = new Image(getClass.getResourceAsStream("dna.png"))
+  val eventRevive = new Image(getClass.getResourceAsStream("syringe.png"))
 }

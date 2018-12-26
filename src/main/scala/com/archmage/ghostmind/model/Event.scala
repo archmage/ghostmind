@@ -34,17 +34,29 @@ object Event {
     time.atZone(ZoneId.systemDefault())
   }
 
-  val healingRegex = """(.+?) healed (.+?) for ([0-9]+?) HP""".r.unanchored
-  val deathRegex = """(.+?) killed (.+?) with (.+?)\.""".r.unanchored
-  val speakerRegex = """(.+?) said "(.+?)"""".r.unanchored
-  val standRegex = """(.+?) stood up\.""".r.unanchored
-
   def parseEventType(eventText: Element): EventType = {
     eventText.text match {
-      case healingRegex(healer, recipient, amount) => Healing(healer, recipient, amount.toInt)
-      case deathRegex(killer, victim, method) => Death(killer, victim, method)
-      case speakerRegex(speaker, text) => Speech(speaker, text)
-      case standRegex(target) => Stand(target)
+      case Heal.regex(source, target, amount) => Heal(source, target, amount.toInt)
+      case Killed.regex(source) => Killed(source)
+      case SurvivorKill.regex(source, target, method) => SurvivorKill(source, target, method)
+      case Speech.regex(source, message) => Speech(source, message)
+      case Broadcast.regex(frequency, message) => Broadcast(frequency, message)
+      case Stand.regex(target) => Stand(target)
+      case BarricadesDown.regex(source) => BarricadesDown(source)
+      case Groan.regex() => Groan()
+      case Claw.regex(source, damage) => Claw(source, damage.toInt)
+      case Grab.regex() => Grab()
+      case Ungrab.regex() => Grab()
+      case Bite.regex(source, damage) => Bite(source, damage.toInt)
+      case Infect.regex() => Infect()
+      case ClawKill.regex(source, target) => ClawKill(source, target)
+      case BiteKill.regex(source, target) => BiteKill(source, target)
+      case LightsOn.regex(source) => LightsOn(source)
+      case LightsOff.regex(source) => LightsOff(source)
+      case Flare.regex(source) => Flare(source)
+      case Refuel.regex(source) => Refuel(source)
+      case Extract.regex(source) => Extract(source)
+      case Revive.regex(source) => Revive(source)
       case _ => Default()
     }
   }
@@ -55,6 +67,7 @@ case class Event(timestamp: ZonedDateTime, content: Element, eventType: EventTyp
     val andAgain = """\.\.\.and again\.""".r.unanchored
     val count = andAgain.findAllIn(content.text).length
     val countString = if(count > 0) s" (x${count + 1})" else ""
+//    println(content.innerHtml)
     content.text.replaceAll(" \\(.+?\\)", "").replaceAll(" \\.\\.\\.and again\\.", "") + countString
   }
 
@@ -78,8 +91,74 @@ case class PersistentEvent(timestamp: String, text: String) {
 }
 
 sealed abstract class EventType(val image: Image)
+abstract class Regex(_regex: String) {
+  val regex = _regex.r.unanchored
+}
+
 case class Default() extends EventType(AssetManager.eventDefault)
-case class Healing(healer: String, recipient: String, amount: Int) extends EventType(AssetManager.eventHeal)
-case class Death(killer: String, victim: String, method: String) extends EventType(AssetManager.eventDeath)
-case class Speech(speaker: String, text: String) extends EventType(AssetManager.eventSpeech)
-case class Stand(target: String) extends EventType(AssetManager.eventStand)
+
+object Heal extends Regex("""(.+?) healed (.+?) for ([0-9]+?) HP\.""")
+case class Heal(source: String, target: String, amount: Int) extends EventType(AssetManager.eventHeal)
+
+object Killed extends Regex("""You were killed by (.+?)\.""")
+case class Killed(source: String) extends EventType(AssetManager.eventDeath)
+
+object SurvivorKill extends Regex("""(.+?) killed (.+?) with (.+?)\.""")
+case class SurvivorKill(source: String, target: String, method: String) extends EventType(AssetManager.eventDeath)
+
+object Speech extends Regex("""(.+?) said "(.+?)"""")
+case class Speech(source: String, message: String) extends EventType(AssetManager.eventSpeech)
+
+object Broadcast extends Regex("""([0-9]+?\.[0-9]+?) MHz: "(.+?)"""")
+case class Broadcast(frequency: String, message: String) extends EventType(AssetManager.eventRadio)
+
+object Stand extends Regex("""(.+?) stood up\.""")
+case class Stand(source: String) extends EventType(AssetManager.eventStand)
+
+object BarricadesDown extends Regex("""(.+?) brought down the last of the barricades\.""")
+case class BarricadesDown(source: String) extends EventType(AssetManager.eventAlarm)
+
+object Groan extends Regex(""" groaning """)
+case class Groan() extends EventType(AssetManager.eventMegaphone)
+
+object Claw extends Regex("""(.+?) clawed at you for ([0-9]+?) damage\.""")
+case class Claw(source: String, damage: Int) extends EventType(AssetManager.eventClaw)
+
+object Grab extends Regex("""The zombie grabbed hold of you!""")
+case class Grab() extends EventType(AssetManager.eventClaw)
+
+object Ungrab extends Regex("""The zombie lost its grip\.""")
+case class Ungrab() extends EventType(AssetManager.eventClaw)
+
+object Bite extends Regex("""(.+?) bit into you for ([0-9]+?) damage\.""")
+case class Bite(source: String, damage: Int) extends EventType(AssetManager.eventBite)
+
+object Infect extends Regex("""The zombie's bite was infected!""")
+case class Infect() extends EventType(AssetManager.eventInfect)
+
+object ClawKill extends Regex("""(.+?) killed (.+?)\.""")
+case class ClawKill(source: String, target: String) extends EventType(AssetManager.eventDeath)
+
+object BiteKill extends Regex("""(.+?) bit (.+?) to death\.""")
+case class BiteKill(source: String, target: String) extends EventType(AssetManager.eventDeath)
+
+object LightsOn extends Regex(""" lights came on inside (.+?)\.""")
+case class LightsOn(source: String) extends EventType(AssetManager.eventLightsOn)
+
+object LightsOff extends Regex(""" lights went out in (.+?)\.""")
+case class LightsOff(source: String) extends EventType(AssetManager.eventLightsOff)
+
+object Flare extends Regex(""" flare was fired (.+?)\.""")
+case class Flare(source: String) extends EventType(AssetManager.eventFlare)
+
+object Refuel extends Regex("""(.+?) refuelled the generator\.""")
+case class Refuel(source: String) extends EventType(AssetManager.eventRefuel)
+
+object Extract extends Regex("""(.+?) extracted a DNA sample from you\.""")
+case class Extract(source: String) extends EventType(AssetManager.eventExtract)
+
+object Revive extends Regex("""(.+?) revivified you with a NecroTech syringe\.""")
+case class Revive(source: String) extends EventType(AssetManager.eventRevive)
+
+object Dumped extends Regex("""(.+?) dumped your body out onto the street\.""")
+case class Dumped(source: String) extends EventType(AssetManager.eventMegaphone)

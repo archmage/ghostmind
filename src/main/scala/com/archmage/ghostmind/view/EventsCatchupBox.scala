@@ -49,7 +49,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
         children = List(icon, textFlow)
       }
 
-      eventBox.maxWidth <== this.width - 34 // TODO make this less shit
+      eventBox.maxWidth <== this.width - 40 // TODO make this less shit
       eventBox
     }}.toList
 
@@ -62,7 +62,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
     }
 
     // temporary workaround
-    maxHeight = 300
+//    maxHeight = 300
 
     children = List(heading, scrollPane)
   }
