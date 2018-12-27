@@ -34,4 +34,6 @@ object AssetManager {
 
   val eventExtract = new Image(getClass.getResourceAsStream("dna.png"))
   val eventRevive = new Image(getClass.getResourceAsStream("syringe.png"))
+  val eventAttacked = new Image(getClass.getResourceAsStream("pk.png"))
+  val eventDumped = new Image(getClass.getResourceAsStream("dump.png"))
 }

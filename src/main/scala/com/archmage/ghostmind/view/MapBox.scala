@@ -6,10 +6,6 @@ import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
 import scalafx.scene.layout.VBox
 
-object MapBox {
-  val defaultBlockLabelText = "Block Name"
-}
-
 class MapBox(val session: CharacterSession) extends VBox {
 
   alignment = Pos.TopCenter
@@ -32,7 +28,7 @@ class MapBox(val session: CharacterSession) extends VBox {
   }
   val blockLabel = new Label {
     id = "WhiteText"
-    text = MapBox.defaultBlockLabelText
+    text = defaultBlockLabelText
   }
   val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
   val suburbLabel = new Label {
@@ -108,10 +104,21 @@ class MapBox(val session: CharacterSession) extends VBox {
       }
     }
 
+    resetActiveSuburb()
+
     children = List(searchField, suburbLabel, suburbGrid, blockLabel, blockGrid)
   }
 
-  def defaultSuburbLabelText: String = session.username
+  def defaultSuburbLabelText: String = {
+    val suburbIndex = session.suburbIndex()
+    if(suburbIndex.isDefined) Suburb.suburbs(suburbIndex.get).name
+    else session.username
+  }
+
+  def defaultBlockLabelText: String = {
+    if(session.position.isDefined) Block.blocks(session.position.get).name
+    else "Block Name"
+  }
 
   def getSuburbSearchResult: Option[String] = {
     if(suburbMatchCount.isDefined) {
@@ -150,7 +157,10 @@ class MapBox(val session: CharacterSession) extends VBox {
     if(suburbGrid.lastHoveredCell.value.isDefined) activeSuburb.value = suburbGrid.lastHoveredCell.value.get
     else if(suburbGrid.selectedCell.value.isDefined) activeSuburb.value = suburbGrid.selectedCell.value.get
     else {
-      // activeSuburb.value = session.suburb!
+      val suburbIndex = session.suburbIndex()
+      if(suburbIndex.isDefined) {
+        activeSuburb.value = suburbIndex.get
+      }
     }
   }
 
@@ -169,7 +179,6 @@ class MapBox(val session: CharacterSession) extends VBox {
           // selected cell
           val activeName = suburbGrid.getActiveName
           if(activeName.isDefined) activeName.get
-          // TODO session's current suburb
           else defaultSuburbLabelText
         }
       }
@@ -181,7 +190,7 @@ class MapBox(val session: CharacterSession) extends VBox {
       if(searchResult.isDefined) searchResult
       else blockGrid.getActiveName
     }
-    blockLabel.text = if(blockText.isDefined) blockText.get else MapBox.defaultBlockLabelText
+    blockLabel.text = if(blockText.isDefined) blockText.get else defaultBlockLabelText
   }
 
   init()

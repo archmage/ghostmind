@@ -20,6 +20,8 @@ case class CharacterSession(
   password: String,
   var attributes: Option[CharacterAttributes] = None) {
 
+  var position: Option[Int] = None
+
   var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
   val state: ObjectProperty[SessionState] = ObjectProperty(Offline())
 
@@ -89,6 +91,11 @@ case class CharacterSession(
 
   def apDouble(): Double = {
     Math.max(0, apCalculated()) / CharacterSession.maxAp.doubleValue()
+  }
+
+  def suburbIndex(): Option[Int] = {
+    if(position.isEmpty) None
+    else Some((position.get / 1000) * 10 + (position.get / 10) % 10)
   }
 }
 

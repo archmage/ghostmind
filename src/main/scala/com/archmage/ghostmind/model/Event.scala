@@ -57,6 +57,8 @@ object Event {
       case Refuel.regex(source) => Refuel(source)
       case Extract.regex(source) => Extract(source)
       case Revive.regex(source) => Revive(source)
+      case Dumped.regex(source) => Dumped(source)
+      case Attacked.regex(source, verb, weapon, damage) => Attacked(source, verb, weapon, damage.toInt)
       case _ => Default()
     }
   }
@@ -161,4 +163,7 @@ object Revive extends Regex("""(.+?) revivified you with a NecroTech syringe\.""
 case class Revive(source: String) extends EventType(AssetManager.eventRevive)
 
 object Dumped extends Regex("""(.+?) dumped your body out onto the street\.""")
-case class Dumped(source: String) extends EventType(AssetManager.eventMegaphone)
+case class Dumped(source: String) extends EventType(AssetManager.eventDumped)
+
+object Attacked extends Regex("""(.+?) (.+?) you with a (.+?) for ([0-9]+?) damage\.""")
+case class Attacked(source: String, verb: String, weapon: String, damage: Int) extends EventType(AssetManager.eventAttacked)

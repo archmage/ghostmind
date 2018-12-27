@@ -172,9 +172,11 @@ object UrbanDeadModel {
     parseNewEvents(map.get, session)
 
     val gtElements = map.get >> elementList(".gt")
+    val mapBlock = (map.get >> elementList("table") >> element(".c")).head
     val statusBlock = gtElements.head
     val locationBlock = gtElements(1)
 
+    parseMapBlock(mapBlock, session)
     parseStatusBlock(statusBlock, session)
     parseLocationBlock(locationBlock, session)
   }
@@ -194,6 +196,30 @@ object UrbanDeadModel {
 
       saveEvents(session)
     }
+  }
+
+  def parseMapBlock(block: Element, session: CharacterSession): Unit = {
+    val centreRow = (block >> elementList("tr"))(2)
+    val inputs = centreRow >> elementList("input")
+    val hiddenInputs = inputs.filter(element => element.attr("type") == "hidden")
+    val coordinates = hiddenInputs.map { input =>
+      val xy = input.attr("value").split("-")
+      (xy(0).toInt, xy(1).toInt)
+    }
+    var x = 0
+    var y = 0
+
+    if(coordinates.length == 2) {
+      x = coordinates(0)._1 + 1
+      y = coordinates(0)._2
+    }
+    else {
+      y = coordinates(0)._2
+      if(coordinates(0)._1 == 1) x = 0
+      else if(coordinates(0)._1 == 98) x = 99
+    }
+
+    session.position = Some(x + y * 100)
   }
 
   def parseStatusBlock(block: Element, session: CharacterSession): Option[CharacterAttributes] = {
@@ -246,6 +272,12 @@ object UrbanDeadModel {
 
   def parseLocationBlock(block: Element, session: CharacterSession): Unit = {
     // same
+  }
+
+  def tryAndSpeak(): Unit = {
+    if(activeSession.isEmpty) return
+    val speechAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl", Map("speech" -> "*makes spooky ghost noises*"))
+    println(speechAttempt.body)
   }
 
   def loginExistingSession(session: CharacterSession, index: Int): Boolean = {

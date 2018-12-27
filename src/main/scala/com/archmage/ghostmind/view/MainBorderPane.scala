@@ -5,7 +5,7 @@ import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
 import scalafx.scene.control.TabPane.TabClosingPolicy
-import scalafx.scene.control.{Label, Tab, TabPane}
+import scalafx.scene.control.{Button, Label, Tab, TabPane}
 import scalafx.scene.layout._
 
 class MainBorderPane extends BorderPane {
@@ -77,7 +77,10 @@ class MainBorderPane extends BorderPane {
 
           eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
           centreVBox.alignment = Pos.TopCenter
-          centreVBox.children = List(eventsCatchupBox)
+          centreVBox.children = List(eventsCatchupBox, new Button {
+            text = "Speak!"
+            onAction = _ => UrbanDeadModel.tryAndSpeak()
+          })
 
           mapBox = new MapBox(UrbanDeadModel.activeSession.get)
           leftTabPane.tabs = List(
