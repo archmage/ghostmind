@@ -199,27 +199,33 @@ object UrbanDeadModel {
   }
 
   def parseMapBlock(block: Element, session: CharacterSession): Unit = {
-    val centreRow = (block >> elementList("tr"))(2)
-    val inputs = centreRow >> elementList("input")
-    val hiddenInputs = inputs.filter(element => element.attr("type") == "hidden")
-    val coordinates = hiddenInputs.map { input =>
-      val xy = input.attr("value").split("-")
-      (xy(0).toInt, xy(1).toInt)
-    }
-    var x = 0
-    var y = 0
+    try {
 
-    if(coordinates.length == 2) {
-      x = coordinates(0)._1 + 1
-      y = coordinates(0)._2
-    }
-    else {
-      y = coordinates(0)._2
-      if(coordinates(0)._1 == 1) x = 0
-      else if(coordinates(0)._1 == 98) x = 99
-    }
+      val centreRow = (block >> elementList("tr"))(2)
+      val inputs = centreRow >> elementList("input")
+      val hiddenInputs = inputs.filter(element => element.attr("type") == "hidden")
+      val coordinates = hiddenInputs.map { input =>
+        val xy = input.attr("value").split("-")
+        (xy(0).toInt, xy(1).toInt)
+      }
+      var x = 0
+      var y = 0
 
-    session.position = Some(x + y * 100)
+      if(coordinates.length == 2) {
+        x = coordinates(0)._1 + 1
+        y = coordinates(0)._2
+      }
+      else {
+        y = coordinates(0)._2
+        if(coordinates(0)._1 == 1) x = 0
+        else if(coordinates(0)._1 == 98) x = 99
+      }
+
+      session.position = Some(x + y * 100)
+    }
+    catch {
+      case _: IndexOutOfBoundsException => ()
+    }
   }
 
   def parseStatusBlock(block: Element, session: CharacterSession): Option[CharacterAttributes] = {

@@ -159,7 +159,7 @@ case class Refuel(source: String) extends EventType(AssetManager.eventRefuel)
 object Extract extends Regex("""(.+?) extracted a DNA sample from you\.""")
 case class Extract(source: String) extends EventType(AssetManager.eventExtract)
 
-object Revive extends Regex("""(.+?) revivified you with a NecroTech syringe\.""")
+object Revive extends Regex("""(.+?) revivified .+?\.""")
 case class Revive(source: String) extends EventType(AssetManager.eventRevive)
 
 object Dumped extends Regex("""(.+?) dumped your body out onto the street\.""")

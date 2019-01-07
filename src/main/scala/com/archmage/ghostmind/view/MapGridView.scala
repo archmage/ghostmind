@@ -29,19 +29,27 @@ trait MapGridViewDataSource {
 
 class MapGridView(
   val dataSources: List[MapGridViewDataSource],
-  val dataSourceWidth: Int,
-  onHoverEnter: (Int, Int) => Unit = (_, _) => (),
-  onHoverExit: () => Unit = () => (),
-  onSelect: (Int, Int) => Unit = (_, _) => (),
-  onDeselect: () => Unit = () => ()) extends GridPane {
+  val dataSourceWidth: Int) extends GridPane {
 
-  var cells = ListBuffer[MapGridRectangle]()
+  // list of cells; should be size() == 100
+  var cells = ListBuffer[MapGridCell]()
 
+  // the index (0-99) of the last cell that was hovered
   var lastHoveredCell: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
+  // the index (0-99) of the currently selected cell
   var selectedCell: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
 
+  // x and y offsets for the data source
   var offsetX: IntegerProperty = IntegerProperty.apply(0)
   var offsetY: IntegerProperty = IntegerProperty.apply(0)
+
+  // a predicate to determine whether a cell should be highlighted
+  var highlightPredicate: MapGridViewDataSource => Boolean = { _ => false }
+
+  var onHoverEnter: (Int, Int) => Unit = (_, _) => ()
+  var onHoverExit: () => Unit = () => ()
+  var onSelect: (Int, Int) => Unit = (_, _) => ()
+  var onDeselect: () => Unit = () => ()
 
   def init(): Unit = {
     offsetX.onChange { (_, _, _) => update() }
@@ -69,7 +77,7 @@ class MapGridView(
       for(cellX <- 0 until MapGridView.gridWidth) {
         val dataSource = dataSources.lift.apply(
           (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).getOrElse(Suburb.default)
-        val cell = new MapGridRectangle(dataSource) {
+        val cell = new MapGridCell(dataSource) {
           width = MapGridView.cellSize
           height = MapGridView.cellSize
           onMouseEntered = _ => {
@@ -91,11 +99,12 @@ class MapGridView(
       val newDataSourceValue = dataSources.lift.apply(
         (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).getOrElse(Suburb.default)
       cellWithIndex._1.dataSource.value = newDataSourceValue
+      cellWithIndex._1.highlighted.value = highlightPredicate(cellWithIndex._1.dataSource.value)
     }
   }
 
   def dataSourcesCoordinatesFromIndex(index: Int): (Int, Int) = {
-    (index % MapGridView.gridWidth, index / MapGridView.gridHeight)
+    (index % dataSourceWidth, index / dataSourceWidth)
   }
 
   def selectCell(index: Int): Unit = {
@@ -121,12 +130,13 @@ class MapGridView(
   init()
 }
 
-object MapGridRectangle {
+object MapGridCell {
+  val currentStyle = "-fx-stroke: white; -fx-stroke-width: 2; -fx-stroke-type: inside;"
   val highlightedStyle = "-fx-stroke: black; -fx-stroke-width: 2; -fx-stroke-type: inside;"
   val selectedStyle = "-fx-stroke: purple; -fx-stroke-width: 2; -fx-stroke-type: inside;"
 }
 
-class MapGridRectangle(dataSourceValue: MapGridViewDataSource) extends Rectangle {
+class MapGridCell(dataSourceValue: MapGridViewDataSource) extends Rectangle {
   val dataSource: ObjectProperty[MapGridViewDataSource] = ObjectProperty.apply(dataSourceValue)
   var highlighted = BooleanProperty.apply(false)
   var selected = BooleanProperty.apply(false)
@@ -136,8 +146,8 @@ class MapGridRectangle(dataSourceValue: MapGridViewDataSource) extends Rectangle
 
   def updateStyling(): Unit = {
     style = {
-      if(selected.value) s"${colourStyle()} ${MapGridRectangle.selectedStyle}"
-      else if(highlighted.value) s"${colourStyle()} ${MapGridRectangle.highlightedStyle}"
+      if(selected.value) s"${colourStyle()} ${MapGridCell.selectedStyle}"
+      else if(highlighted.value) s"${colourStyle()} ${MapGridCell.highlightedStyle}"
       else colourStyle()
     }
   }

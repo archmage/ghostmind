@@ -15,6 +15,9 @@ class MapBox(val session: CharacterSession) extends VBox {
   // the suburb for blockGrid to show
   var activeSuburb = IntegerProperty.apply(0)
 
+  // the block for labels and stuff to show
+//  var activeBlock = IntegerProperty.apply(0)
+
   // search stuff
   var suburbMatchCount: Option[Int] = None
   var lastSuburbMatch: Option[Int] = None
@@ -26,31 +29,47 @@ class MapBox(val session: CharacterSession) extends VBox {
   val searchField = new GhostField {
     promptText = "search"
   }
-  val blockLabel = new Label {
+  val searchStatusLabel = new Label {
     id = "WhiteText"
-    text = defaultBlockLabelText
+    text = ""
+    style = "-fx-text-fill: -lighter-grey;"
+    margin = Insets(-8, 0, 0, 0)
   }
-  val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
   val suburbLabel = new Label {
     id = "BoxHeading"
     text = defaultSuburbLabelText
   }
+  val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
+  val blockLabel = new Label {
+    id = "WhiteText"
+    text = defaultBlockLabelText
+  }
+  val coordinatesLabel = new Label {
+    id = "WhiteText"
+    text = defaultCoordinatesLabelText
+  }
   // buncha closures to do activeSuburb changes
-  val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10, (_, _) => {
-    if(suburbGrid.selectedCell.value.isEmpty) activeSuburb.value = suburbGrid.lastHoveredCell.value.get
-  }, () => {
-    resetActiveSuburb()
-  }, (_, _) => {
-    activeSuburb.value = suburbGrid.selectedCell.value.get
-  }, () => {
-    activeSuburb.value = suburbGrid.lastHoveredCell.value.get
-  })
+  val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10) {
+    onHoverEnter = (_, _) => {
+      if(suburbGrid.selectedCell.value.isEmpty) activeSuburb.value = suburbGrid.lastHoveredCell.value.get
+    }
+    onHoverExit = () => {
+      resetActiveSuburb()
+    }
+    onSelect = (_, _) => {
+      activeSuburb.value = suburbGrid.selectedCell.value.get
+    }
+    onDeselect = () => {
+      activeSuburb.value = suburbGrid.lastHoveredCell.value.get
+    }
+  }
 
   def init(): Unit = {
     suburbGrid.alignment <== alignment
     blockGrid.alignment <== alignment
 
     activeSuburb.onChange { (_, _, _) => updateBlockGridOffset() }
+//    activeBlock.onChange { (_, _, _) => updateBlockLabels() }
 
     suburbGrid.lastHoveredCell.onChange { (_, _, _) => update() }
     suburbGrid.selectedCell.onChange { (_, _, _) => update() }
@@ -96,8 +115,7 @@ class MapBox(val session: CharacterSession) extends VBox {
     }}
 
     searchField.onAction = _ => {
-      // select if there's a single match!
-      if(getSingleSuburbMatch.isDefined) {
+      if(getSingleSuburbMatch.isDefined) { // select if there's a single match!
         suburbGrid.cells(lastSuburbMatch.get).highlighted.value = false
         suburbGrid.selectCell(lastSuburbMatch.get)
         searchField.text = ""
@@ -106,7 +124,7 @@ class MapBox(val session: CharacterSession) extends VBox {
 
     resetActiveSuburb()
 
-    children = List(searchField, suburbLabel, suburbGrid, blockLabel, blockGrid)
+    children = List(searchField, searchStatusLabel, suburbLabel, suburbGrid, blockLabel, blockGrid, coordinatesLabel)
   }
 
   def defaultSuburbLabelText: String = {
@@ -120,15 +138,12 @@ class MapBox(val session: CharacterSession) extends VBox {
     else "Block Name"
   }
 
-  def getSuburbSearchResult: Option[String] = {
-    if(suburbMatchCount.isDefined) {
-      if(suburbMatchCount.get == 1 && lastSuburbMatch.isDefined) {
-        Some(suburbGrid.cells(lastSuburbMatch.get).dataSource.value.getName)
-      }
-      else Some(s"${if(suburbMatchCount.get <= 0) "no" else suburbMatchCount.get} matches${
-        if(suburbMatchCount.get > 0) " found" else ""}")
+  def defaultCoordinatesLabelText: String = {
+    if(session.position.isDefined) {
+      val coordinates = blockGrid.dataSourcesCoordinatesFromIndex(session.position.get)
+      s"[${coordinates._1}, ${coordinates._2}]"
     }
-    else None
+    else "[x, y]"
   }
 
   def getBlockSearchResult: Option[String] = {
@@ -165,6 +180,39 @@ class MapBox(val session: CharacterSession) extends VBox {
   }
 
   def update(): Unit = {
+    // update things based on suburb grid changes
+
+//    onHoverEnter = (_, _) => {
+//      if(suburbGrid.selectedCell.value.isEmpty) activeSuburb.value = suburbGrid.lastHoveredCell.value.get
+//    }
+//    onHoverExit = () => {
+//      resetActiveSuburb()
+//    }
+//    onSelect = (_, _) => {
+//      activeSuburb.value = suburbGrid.selectedCell.value.get
+//    }
+//    onDeselect = () => {
+//      activeSuburb.value = suburbGrid.lastHoveredCell.value.get
+//    }
+
+    // update search status label
+    searchStatusLabel.text = {
+      if(suburbMatchCount.isEmpty && blockMatchCount.isEmpty) ""
+      else {
+        s"${
+          if(suburbMatchCount.isDefined)
+            s"${suburbMatchCount.get} suburb${if (suburbMatchCount.get != 1) "s" else ""}"
+          else ""
+        }${
+          if(suburbMatchCount.isDefined && blockMatchCount.isDefined) ", " else ""
+        }${
+          if(blockMatchCount.isDefined)
+            s"${blockMatchCount.get} block${if (blockMatchCount.get != 1) "s" else ""}"
+          else ""
+        }"
+      }
+    }
+
     // update suburb label text
     suburbLabel.text = {
       // hovered cell
@@ -172,15 +220,10 @@ class MapBox(val session: CharacterSession) extends VBox {
         suburbGrid.cells(suburbGrid.lastHoveredCell.value.get).dataSource.value.getName
       }
       else {
-        // search results
-        val searchResultString = getSuburbSearchResult
-        if(searchResultString.isDefined) searchResultString.get
-        else {
-          // selected cell
-          val activeName = suburbGrid.getActiveName
-          if(activeName.isDefined) activeName.get
-          else defaultSuburbLabelText
-        }
+        // selected cell
+        val activeName = suburbGrid.getActiveName
+        if(activeName.isDefined) activeName.get
+        else defaultSuburbLabelText
       }
     }
 

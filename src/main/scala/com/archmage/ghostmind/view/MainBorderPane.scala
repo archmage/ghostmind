@@ -77,10 +77,10 @@ class MainBorderPane extends BorderPane {
 
           eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
           centreVBox.alignment = Pos.TopCenter
-          centreVBox.children = List(eventsCatchupBox, new Button {
+          centreVBox.children = List(eventsCatchupBox,  /* new Button {
             text = "Speak!"
             onAction = _ => UrbanDeadModel.tryAndSpeak()
-          })
+          } */)
 
           mapBox = new MapBox(UrbanDeadModel.activeSession.get)
           leftTabPane.tabs = List(
