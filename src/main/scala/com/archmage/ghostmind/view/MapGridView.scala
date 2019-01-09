@@ -1,6 +1,5 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.Suburb
 import javafx.scene.input.MouseButton
 import scalafx.beans.property.{BooleanProperty, IntegerProperty, ObjectProperty}
 import scalafx.scene.layout.{ColumnConstraints, GridPane, RowConstraints}
@@ -9,7 +8,7 @@ import scalafx.scene.shape.Rectangle
 import scala.collection.mutable.ListBuffer
 
 object MapGridView {
-  val cellSize = 13
+  val cellSize = 12
 
   val gridWidth = 10
   val gridHeight = 10
@@ -44,16 +43,21 @@ class MapGridView(
   var offsetY: IntegerProperty = IntegerProperty.apply(0)
 
   // a predicate to determine whether a cell should be highlighted
-  var highlightPredicate: MapGridViewDataSource => Boolean = { _ => false }
+  var highlightPredicate: ObjectProperty[Option[MapGridViewDataSource => Boolean]] = ObjectProperty.apply(None)
 
-  var onHoverEnter: (Int, Int) => Unit = (_, _) => ()
-  var onHoverExit: () => Unit = () => ()
-  var onSelect: (Int, Int) => Unit = (_, _) => ()
-  var onDeselect: () => Unit = () => ()
+  // the number of datasource matches for the predicate
+  private var _matchCount: Option[Int] = None
+  def matchCount: Option[Int] = _matchCount
+
+  // a single datasource index value if there's only one match from the predicate
+  private var _singleMatch: Option[Int] = None
+  def singleMatch: Option[Int] = _singleMatch
 
   def init(): Unit = {
     offsetX.onChange { (_, _, _) => update() }
     offsetY.onChange { (_, _, _) => update() }
+
+    highlightPredicate.onChange { (_, _, _) => updateHighlights() }
 
     rowConstraints = List.fill(MapGridView.gridHeight)(MapGridView.rowConstraint)
     columnConstraints = List.fill(MapGridView.gridWidth)(MapGridView.columnConstraint)
@@ -69,21 +73,17 @@ class MapGridView(
 
     onMouseExited = _ => {
       lastHoveredCell.value = None
-      onHoverExit()
     }
 
     // setup cells
     for (cellY <- 0 until MapGridView.gridHeight) {
       for(cellX <- 0 until MapGridView.gridWidth) {
         val dataSource = dataSources.lift.apply(
-          (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).getOrElse(Suburb.default)
+          (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).get
         val cell = new MapGridCell(dataSource) {
           width = MapGridView.cellSize
           height = MapGridView.cellSize
-          onMouseEntered = _ => {
-            lastHoveredCell.value = Some(cellX + MapGridView.gridWidth * cellY)
-            onHoverEnter(cellX + offsetX.value, cellY + offsetY.value)
-          }
+          onMouseEntered = _ => { lastHoveredCell.value = Some(cellX + MapGridView.gridWidth * cellY) }
         }
 
         this.add(cell, cellX, cellY)
@@ -92,15 +92,40 @@ class MapGridView(
     }
   }
 
+  // update data sources for cells, and highlights
   def update(): Unit = {
-    deselectCell()
     cells.zipWithIndex.foreach { cellWithIndex =>
       val (cellX, cellY) = MapGridView.cellCoordinatesFromIndex(cellWithIndex._2)
       val newDataSourceValue = dataSources.lift.apply(
-        (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).getOrElse(Suburb.default)
+        (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).get
       cellWithIndex._1.dataSource.value = newDataSourceValue
-      cellWithIndex._1.highlighted.value = highlightPredicate(cellWithIndex._1.dataSource.value)
     }
+
+    updateHighlights()
+  }
+
+  // update highlights and match count based off the predicate!
+  def updateHighlights(): Unit = {
+    if(highlightPredicate.value.isEmpty) {
+      cells.foreach { _.highlighted.value = false }
+      _matchCount = None
+      _singleMatch = None
+    }
+    else {
+      cells.foreach { cell => cell.highlighted.value = highlightPredicate.value.get.apply(cell.dataSource.value) }
+      val matches = dataSources.zipWithIndex.filter {
+        dataSourceWithIndex => highlightPredicate.value.get.apply(dataSourceWithIndex._1)
+      }
+      _matchCount = Some(matches.size)
+      _singleMatch = if(matches.size == 1) Some(matches.head._2) else None
+    }
+  }
+
+  // reset highlighting
+  def resetHighlights(): Unit = {
+    highlightPredicate.value = None
+    _matchCount = None
+    _singleMatch = None
   }
 
   def dataSourcesCoordinatesFromIndex(index: Int): (Int, Int) = {
@@ -111,21 +136,19 @@ class MapGridView(
     if(selectedCell.value.isDefined) cells(selectedCell.value.get).selected.value = false
     cells(index).selected.value = true
     selectedCell.value = Some(index)
-    val (cellX, cellY) = MapGridView.cellCoordinatesFromIndex(index)
-    onSelect(cellX, cellY)
   }
 
   def deselectCell(): Unit = {
     if(selectedCell.value.isDefined) cells(selectedCell.value.get).selected.value = false
     selectedCell.value = None
-    onDeselect()
   }
 
-  def getActiveName: Option[String] = {
-    if(lastHoveredCell.value.isDefined) Some(cells(lastHoveredCell.value.get).dataSource.value.getName)
-    else if(selectedCell.value.isDefined) Some(cells(selectedCell.value.get).dataSource.value.getName)
-    else None
-  }
+//  def getActiveName: Option[String] = {
+//    if(lastHoveredCell.value.isDefined) Some(cells(lastHoveredCell.value.get).dataSource.value.getName)
+//    else if(singleMatch.isDefined) Some(dataSources(singleMatch.get).getName)
+//    else if(selectedCell.value.isDefined) Some(cells(selectedCell.value.get).dataSource.value.getName)
+//    else None
+//  }
 
   init()
 }

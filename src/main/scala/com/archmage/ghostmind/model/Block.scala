@@ -42,4 +42,8 @@ case class Block(x: Int, y: Int, name: String, var blockType: Option[String]) ex
 
   override def colourStyle(): String =
     s"-block-${blockType.getOrElse("building").toLowerCase}"
+
+  def getSuburbIndex: Int = {
+    x / 10 + (y / 10) * 10
+  }
 }
