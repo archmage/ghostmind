@@ -27,7 +27,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
   }
   else {
     heading.text = "since your last turn:"
-    val events = session.events.get.map { event => {
+    val events = session.events.get.reverse.map { event => {
       val icon = new ImageView {
         image = event.eventType.image
         fitWidth = 26

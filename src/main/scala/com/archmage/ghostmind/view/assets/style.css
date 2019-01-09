@@ -192,14 +192,15 @@
     -fx-background-radius: 0;
 }
 .scroll-pane {
-   -fx-background-color: transparent;
+    -fx-background-color: transparent;
 }
 .scroll-pane > .viewport {
     -fx-background-color: transparent;
 }
 .text-field {
-  -fx-text-fill: -lighter-grey;
-  -fx-border-color: -grey;
-  -fx-border-width: 0 0 1 0;
-  -fx-background-color: transparent;
+    -fx-text-fill: -less-white;
+    -fx-prompt-text-fill: -lighter-grey;
+    -fx-border-color: -grey;
+    -fx-border-width: 0 0 1 0;
+    -fx-background-color: transparent;
 }

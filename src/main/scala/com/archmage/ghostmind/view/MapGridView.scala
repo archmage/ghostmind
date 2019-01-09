@@ -132,6 +132,10 @@ class MapGridView(
     (index % dataSourceWidth, index / dataSourceWidth)
   }
 
+  def dataSourceIndexFromCoordinates(x: Int, y: Int): Int = {
+    x + dataSourceWidth * y
+  }
+
   def selectCell(index: Int): Unit = {
     if(selectedCell.value.isDefined) cells(selectedCell.value.get).selected.value = false
     cells(index).selected.value = true

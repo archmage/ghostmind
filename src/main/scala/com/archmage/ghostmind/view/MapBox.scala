@@ -8,14 +8,16 @@ import scalafx.scene.layout.VBox
 import scalafx.scene.paint.Color
 import scalafx.scene.text.{Text, TextAlignment, TextFlow}
 
+object MapBox {
+  val coordinatesRegex = """^([0-9]{1,2}) ([0-9]{1,2})$""".r.unanchored
+}
+
 class MapBox(val session: CharacterSession) extends VBox {
 
   alignment = Pos.TopCenter
   padding = Insets(10)
   spacing = 10
   maxWidth = 169
-
-  var widthReference = width
 
   // the suburb for blockGrid to show
   var activeSuburb = IntegerProperty.apply(0)
@@ -43,10 +45,16 @@ class MapBox(val session: CharacterSession) extends VBox {
     text = getSessionBlock
   }
   val blockLabel = new TextFlow {
-    minHeight = 32
     maxWidth = 130
     textAlignment = TextAlignment.Center
     children = blockText
+  }
+  val blockLabelVBox = new VBox {
+    alignment = Pos.BottomCenter
+    padding = Insets(0)
+    spacing = 0
+    minHeight = 32
+    children = blockLabel
   }
   val coordinatesLabel = new Label {
     id = "WhiteText"
@@ -70,28 +78,47 @@ class MapBox(val session: CharacterSession) extends VBox {
 
     searchField.onAction = _ => {
       if(suburbGrid.singleMatch.isDefined) { // select if there's a single match!
+        suburbGrid.selectCell(suburbGrid.singleMatch.get)
         suburbGrid.resetHighlights()
         blockGrid.resetHighlights()
-        suburbGrid.selectCell(suburbGrid.singleMatch.get)
         searchField.text = ""
       }
     }
 
     update()
 
-    children = List(searchField, searchStatusLabel, suburbLabel, suburbGrid, blockLabel, blockGrid, coordinatesLabel)
+    children = List(searchField, searchStatusLabel, suburbLabel, suburbGrid, blockLabelVBox, blockGrid, coordinatesLabel)
   }
 
   def onSearch(text: String): Unit = {
     // if search text isn't empty...
     val cleanString = text.trim.toLowerCase
+      .replace(".", "")
+      .replace(",", "")
     if(!cleanString.isEmpty) {
-      // add highlight predicates to both grids
-      val highlightPredicate: Option[MapGridViewDataSource => Boolean] = Some({
-        dataSource => dataSource.getName.toLowerCase.contains(cleanString)
-      })
-      suburbGrid.highlightPredicate.value = highlightPredicate
-      blockGrid.highlightPredicate.value = highlightPredicate
+      val searchWords = cleanString.split(" ")
+
+      // predicate construction!
+      cleanString match {
+        case MapBox.coordinatesRegex(xCoord, yCoord) =>
+          val coordinatePredicate: Option[MapGridViewDataSource => Boolean] = Some( { dataSource =>
+            val (x, y) = (xCoord.toInt, yCoord.toInt)
+            val block = dataSource.asInstanceOf[Block]
+            block.x == x && block.y == y
+          })
+          suburbGrid.resetHighlights()
+          blockGrid.highlightPredicate.value = coordinatePredicate
+
+        case _ =>
+          val wordMatchPredicate: Option[MapGridViewDataSource => Boolean] = Some( { dataSource => {
+            val cleanName = dataSource.getName.toLowerCase.replace(".", "")
+            searchWords.foldLeft(true) { (doesMatch, currentWord) =>
+              if (!doesMatch) doesMatch else cleanName.contains(currentWord)
+            }
+          }})
+          suburbGrid.highlightPredicate.value = wordMatchPredicate
+          blockGrid.highlightPredicate.value = wordMatchPredicate
+      }
 
       // if there's only one match, make it the active suburb!
       if(suburbGrid.singleMatch.isDefined) {
@@ -173,14 +200,7 @@ class MapBox(val session: CharacterSession) extends VBox {
       if(suburbGrid.lastHoveredCell.value.isDefined) {
         suburbGrid.cells(suburbGrid.lastHoveredCell.value.get).dataSource.value.getName
       }
-        // about to knock this down
-      else if(suburbGrid.singleMatch.isDefined) {
-        suburbGrid.dataSources(suburbGrid.singleMatch.get).getName
-      }
-      else if(suburbGrid.selectedCell.value.isDefined) {
-        suburbGrid.cells(suburbGrid.selectedCell.value.get).dataSource.value.getName
-      }
-      else getSessionSuburb
+      else Suburb.suburbs(activeSuburb.value).name
     }
   }
 
@@ -189,12 +209,13 @@ class MapBox(val session: CharacterSession) extends VBox {
       if(blockGrid.lastHoveredCell.value.isDefined) {
         blockGrid.cells(blockGrid.lastHoveredCell.value.get).dataSource.value.getName
       }
-      if(blockGrid.singleMatch.isDefined) {
+      else if(blockGrid.singleMatch.isDefined) {
         blockGrid.dataSources(blockGrid.singleMatch.get).getName
       }
       else if(blockGrid.selectedCell.value.isDefined) {
         blockGrid.cells(blockGrid.selectedCell.value.get).dataSource.value.getName
       }
+      else if(session.suburbIndex().isDefined && activeSuburb.value != session.suburbIndex().get) "------"
       else getSessionBlock
     }
   }
@@ -211,6 +232,7 @@ class MapBox(val session: CharacterSession) extends VBox {
         else if(blockGrid.selectedCell.value.isDefined) {
           Some(blockGrid.cells(blockGrid.selectedCell.value.get).dataSource.value.asInstanceOf[Block])
         }
+        else if(session.suburbIndex().isDefined && activeSuburb.value != session.suburbIndex().get) None
         else if(session.position.isDefined) Some(Block.blocks(session.position.get))
         else None
       }
@@ -221,7 +243,7 @@ class MapBox(val session: CharacterSession) extends VBox {
     coordinatesLabel.text = if(coordinates.isDefined) {
       s"[${coordinates.get._1}, ${coordinates.get._2}]"
     }
-    else "[x, y]"
+    else "[--, --]"
   }
 
   def update(): Unit = {
@@ -230,6 +252,9 @@ class MapBox(val session: CharacterSession) extends VBox {
     updateSuburbLabel()
     updateBlockLabel()
     updateCoordinatesLabel()
+
+//    println(blockText.text.value)
+//    println(blockGrid.lastHoveredCell.value)
   }
 
   init()
