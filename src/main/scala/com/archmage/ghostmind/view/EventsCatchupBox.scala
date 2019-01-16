@@ -36,11 +36,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
       }
 
       val textFlow = new TextFlow {
-        children = List(icon, new Text {
-          fill = Color.White
-          text = event.formatOutput()
-        })
-
+        children = event.textElements()
         padding = Insets(4, 0, 0, EventsCatchupBox.textPadding)
       }
 

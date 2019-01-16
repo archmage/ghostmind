@@ -23,18 +23,24 @@
     /* suburbs */
     -suburb-safe: #65D880;
     -suburb-intact: #7FB8FF;
-    -suburb-moderate: #EAED4B;
+    -suburb-moderate: #b8b952;
     -suburb-dangerous: #FF9859;
     -suburb-critical: #E85858;
     -suburb-abandoned: #998C99;
 
+    /* meta block colours */
+    -block-empty: #444444;
+    -block-revive-point: #A1CB9B;
+    -block-normal-building: #666666;
+    -block-religious-building: #FFFFFF;
+
     /* non-building blocks */
-    -block-carpark: #444444;
-    -block-cemetery: #A1CB9B;
-    -block-monument: #444444;
-    -block-park: #A1CB9B;
-    -block-street: #444444;
-    -block-wasteland: #444444;
+    -block-carpark: -block-empty;
+    -block-cemetery: -block-revive-point;
+    -block-monument: -block-empty;
+    -block-park: -block-revive-point;
+    -block-street: -block-empty;
+    -block-wasteland: -block-empty;
     -block-zoo: #6e4c41;
 
     /* fort blocks */
@@ -49,30 +55,30 @@
 
     /* buildings blocks */
     -block-autorepair: #ED9E55;
-    -block-bank: #666666;
-    -block-building: #666666;
-    -block-cathedral: #ffffff;
-    -block-church: #ffffff;
+    -block-bank: -block-normal-building;
+    -block-building: -block-normal-building;
+    -block-cathedral: -block-religious-building;
+    -block-church: -block-religious-building;
     -block-cinema: #212121;
-    -block-club: #4e254e;
+    -block-club: #645370;
     -block-enclosure: #936557;
     -block-factory: #e8e433;
     -block-firestation: #E85858;
     -block-hospital: #FF9898;
-    -block-hotel: #666666;
-    -block-junkyard: #666666;
-    -block-largechurch: #ffffff;
-    -block-library: #666666;
+    -block-hotel: -block-normal-building;
+    -block-junkyard: -block-normal-building;
+    -block-largechurch: -block-religious-building;
+    -block-library: -block-normal-building;
     -block-mall: #27c6bc;
     -block-mansion: #720b50;
-    -block-museum: #666666;
+    -block-museum: -block-normal-building;
     -block-police: #436eb2;
     -block-powerstation: #e0b01f;
-    -block-pub: #666666;
-    -block-railway: #666666;
-    -block-school: #666666;
+    -block-pub: -block-normal-building;
+    -block-railway: -block-normal-building;
+    -block-school: -block-normal-building;
     -block-stadium: #42b740;
-    -block-tower: #666666;
+    -block-tower: -block-normal-building;
     -block-warehouse: #a0935e;
 }
 

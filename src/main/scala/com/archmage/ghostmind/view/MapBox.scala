@@ -15,8 +15,7 @@ object MapBox {
 class MapBox(val session: CharacterSession) extends VBox {
 
   alignment = Pos.TopCenter
-  padding = Insets(10)
-  spacing = 10
+  padding = Insets(2, 5, 2, 5)
   maxWidth = 169
 
   // the suburb for blockGrid to show
@@ -28,16 +27,17 @@ class MapBox(val session: CharacterSession) extends VBox {
   // -- ui stuff --
   val searchField = new GhostField {
     promptText = "search"
+    margin = Insets(2, 0, 0, 0)
   }
   val searchStatusLabel = new Label {
     id = "WhiteText"
     text = ""
     style = "-fx-text-fill: -lighter-grey;"
-    margin = Insets(-8, 0, 0, 0)
   }
   val suburbLabel = new Label {
     id = "BoxHeading"
     text = getSessionSuburb
+    margin = Insets(8, 0, 4, 0)
   }
   val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
   val blockText = new Text {
@@ -54,11 +54,13 @@ class MapBox(val session: CharacterSession) extends VBox {
     padding = Insets(0)
     spacing = 0
     minHeight = 32
+    margin = Insets(8, 0, 4, 0)
     children = blockLabel
   }
   val coordinatesLabel = new Label {
     id = "WhiteText"
     text = getSessionCoordinates
+    margin = Insets(4, 0, 0, 0)
   }
   // buncha closures to do activeSuburb changes
   val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10)
@@ -71,8 +73,10 @@ class MapBox(val session: CharacterSession) extends VBox {
 
     suburbGrid.lastHoveredCell.onChange { (_, _, _) => update() }
     suburbGrid.selectedCell.onChange { (_, _, _) => update() }
+    suburbGrid.defaultSource.onChange { (_, _, _) => update() }
     blockGrid.lastHoveredCell.onChange { (_, _, _) => update() }
     blockGrid.selectedCell.onChange { (_, _, _) => update() }
+    blockGrid.defaultSource.onChange { (_, _, _) => update() }
 
     searchField.text.onChange { (_, _, newValue) => onSearch(newValue) }
 
@@ -85,7 +89,8 @@ class MapBox(val session: CharacterSession) extends VBox {
       }
     }
 
-    update()
+    suburbGrid.defaultSource.value = session.suburbIndex()
+    blockGrid.defaultSource.value = session.position
 
     children = List(searchField, searchStatusLabel, suburbLabel, suburbGrid, blockLabelVBox, blockGrid, coordinatesLabel)
   }

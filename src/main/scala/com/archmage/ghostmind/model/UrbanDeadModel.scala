@@ -173,12 +173,12 @@ object UrbanDeadModel {
 
     val gtElements = map.get >> elementList(".gt")
     val mapBlock = (map.get >> elementList("table") >> element(".c")).head
-    val statusBlock = gtElements.head
-    val locationBlock = gtElements(1)
+    val statusBlock = gtElements(0)
+    val environmentBlock = gtElements(1)
 
     parseMapBlock(mapBlock, session)
     parseStatusBlock(statusBlock, session)
-    parseLocationBlock(locationBlock, session)
+    parseEnvironmentBlock(environmentBlock, session)
   }
 
   def parseNewEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
@@ -276,14 +276,23 @@ object UrbanDeadModel {
     CharacterAttributes(-1, -1, -1, data(1).head.text.toInt, data.head.head.text, -1, "", group)
   }
 
-  def parseLocationBlock(block: Element, session: CharacterSession): Unit = {
-    // same
+  def parseEnvironmentBlock(block: Element, session: CharacterSession): Unit = {
+    println(block.innerHtml)
+    session.environment = Some(block.text)
   }
 
   def tryAndSpeak(): Unit = {
     if(activeSession.isEmpty) return
     val speechAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl", Map("speech" -> "*makes spooky ghost noises*"))
     println(speechAttempt.body)
+  }
+
+  def tryAndRevive(): Unit = {
+    if(activeSession.isEmpty) return
+    val reviveAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl?use-z", Map(
+      "target" -> "target-id-this-is-intentionally-broken"
+    ))
+    println(reviveAttempt.body)
   }
 
   def loginExistingSession(session: CharacterSession, index: Int): Boolean = {

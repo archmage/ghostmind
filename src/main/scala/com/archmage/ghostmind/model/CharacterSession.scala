@@ -21,6 +21,7 @@ case class CharacterSession(
   var attributes: Option[CharacterAttributes] = None) {
 
   var position: Option[Int] = None
+  var environment: Option[String] = None
 
   var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
   val state: ObjectProperty[SessionState] = ObjectProperty(Offline())

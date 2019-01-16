@@ -6,6 +6,8 @@ import com.archmage.ghostmind.view.assets.AssetManager
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.model.Element
 import scalafx.scene.image.Image
+import scalafx.scene.paint.{Color, Paint}
+import scalafx.scene.text.{Font, FontWeight, Text}
 
 object Event {
   val dateTimeFormatter = Constants.dateTimeFormatter
@@ -77,6 +79,21 @@ case class Event(timestamp: ZonedDateTime, content: Element, eventType: EventTyp
     s"[${Constants.humanReadableFormatter.format(timestamp)}] ${formatContent()}"
   }
 
+  def textElements(): List[Text] = {
+    val list: List[Text] = List(new Text {
+      fill = Color.web("#87b0bc")
+      text = s"[${Constants.humanReadableFormatter.format(timestamp)}] "
+    })
+
+    eventType match {
+      case event: TextElements => list ::: event.textElements
+      case _ => list :+ new Text {
+        fill = Color.White
+        text = s"${formatContent()}"
+      }
+    }
+  }
+
   def encode(): PersistentEvent = {
     PersistentEvent(timestamp.format(Event.dateTimeFormatter), content.innerHtml)
   }
@@ -96,6 +113,16 @@ sealed abstract class EventType(val image: Image)
 abstract class Regex(_regex: String) {
   val regex = _regex.r.unanchored
 }
+trait TextElements {
+  def textElements: List[Text]
+  final def text(textArg: String, fillArg: Paint = Color.White, fontArg: Font = Font.font(12)): Text = {
+    new Text {
+      fill = fillArg
+      font = fontArg
+      text = textArg
+    }
+  }
+}
 
 case class Default() extends EventType(AssetManager.eventDefault)
 
@@ -104,12 +131,27 @@ case class Heal(source: String, target: String, amount: Int) extends EventType(A
 
 object Killed extends Regex("""You were killed by (.+?)\.""")
 case class Killed(source: String) extends EventType(AssetManager.eventDeath)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"You were killed by $source.", Color.Tomato, Font.font(null, FontWeight.Bold, 12)))
+}
 
 object SurvivorKill extends Regex("""(.+?) killed (.+?) with (.+?)\.""")
 case class SurvivorKill(source: String, target: String, method: String) extends EventType(AssetManager.eventDeath)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"$source killed $target with $method.", Color.Tomato, Font.font(null, FontWeight.Bold, 12)))
+}
 
 object Speech extends Regex("""(.+?) said "(.+?)"""")
 case class Speech(source: String, message: String) extends EventType(AssetManager.eventSpeech)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(source, Color.web("#d38ba3"), Font.font(null, FontWeight.Bold, 12)),
+    text(": "),
+    text(s"""$message""", Color.web("#c29fc6"))
+  )
+}
 
 object Broadcast extends Regex("""([0-9]+?\.[0-9]+?) MHz: "(.+?)"""")
 case class Broadcast(frequency: String, message: String) extends EventType(AssetManager.eventRadio)
@@ -140,9 +182,17 @@ case class Infect() extends EventType(AssetManager.eventInfect)
 
 object ClawKill extends Regex("""(.+?) killed (.+?)\.""")
 case class ClawKill(source: String, target: String) extends EventType(AssetManager.eventDeath)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"$source clawed $target to death.", Color.Tomato, Font.font(null, FontWeight.Bold, 12)))
+}
 
 object BiteKill extends Regex("""(.+?) bit (.+?) to death\.""")
 case class BiteKill(source: String, target: String) extends EventType(AssetManager.eventDeath)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"$source bit $target to death.", Color.Tomato, Font.font(null, FontWeight.Bold, 12)))
+}
 
 object LightsOn extends Regex(""" lights came on inside (.+?)\.""")
 case class LightsOn(source: String) extends EventType(AssetManager.eventLightsOn)

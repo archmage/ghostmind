@@ -2,6 +2,7 @@ package com.archmage.ghostmind.view
 
 import javafx.scene.input.MouseButton
 import scalafx.beans.property.{BooleanProperty, IntegerProperty, ObjectProperty}
+import scalafx.scene.effect.ColorAdjust
 import scalafx.scene.layout.{ColumnConstraints, GridPane, RowConstraints}
 import scalafx.scene.shape.Rectangle
 
@@ -37,6 +38,8 @@ class MapGridView(
   var lastHoveredCell: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
   // the index (0-99) of the currently selected cell
   var selectedCell: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
+  // the datasources index of the "default" datasource
+  var defaultSource: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
 
   // x and y offsets for the data source
   var offsetX: IntegerProperty = IntegerProperty.apply(0)
@@ -56,6 +59,9 @@ class MapGridView(
   def init(): Unit = {
     offsetX.onChange { (_, _, _) => update() }
     offsetY.onChange { (_, _, _) => update() }
+
+    // this is kind of bad, but whatever
+    defaultSource.onChange { (_, _, _) => update() }
 
     highlightPredicate.onChange { (_, _, _) => updateHighlights() }
 
@@ -99,6 +105,8 @@ class MapGridView(
       val newDataSourceValue = dataSources.lift.apply(
         (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).get
       cellWithIndex._1.dataSource.value = newDataSourceValue
+      cellWithIndex._1.defaultSource.value = defaultSource.value.isDefined &&
+        dataSourceIndexFromCoordinates(cellX + offsetX.value, cellY + offsetY.value) == defaultSource.value.get
     }
 
     updateHighlights()
@@ -107,12 +115,12 @@ class MapGridView(
   // update highlights and match count based off the predicate!
   def updateHighlights(): Unit = {
     if(highlightPredicate.value.isEmpty) {
-      cells.foreach { _.highlighted.value = false }
+      cells.foreach { _.highlighted.value = None }
       _matchCount = None
       _singleMatch = None
     }
     else {
-      cells.foreach { cell => cell.highlighted.value = highlightPredicate.value.get.apply(cell.dataSource.value) }
+      cells.foreach { cell => cell.highlighted.value = Some(highlightPredicate.value.get.apply(cell.dataSource.value)) }
       val matches = dataSources.zipWithIndex.filter {
         dataSourceWithIndex => highlightPredicate.value.get.apply(dataSourceWithIndex._1)
       }
@@ -158,15 +166,20 @@ class MapGridView(
 }
 
 object MapGridCell {
-  val currentStyle = "-fx-stroke: white; -fx-stroke-width: 2; -fx-stroke-type: inside;"
-  val highlightedStyle = "-fx-stroke: black; -fx-stroke-width: 2; -fx-stroke-type: inside;"
-  val selectedStyle = "-fx-stroke: purple; -fx-stroke-width: 2; -fx-stroke-type: inside;"
+  val defaultSourceStyle = "-fx-stroke: white; -fx-stroke-width: 2; -fx-stroke-dash-array: 2 1 2 1; -fx-stroke-type: inside;"
+  val highlightedStyle = "-fx-stroke: #e5b244; -fx-stroke-width: 1; -fx-stroke-type: inside;"
+  val selectedStyle = "-fx-stroke: purple; -fx-stroke-width: 1; -fx-stroke-type: inside;"
+
+  val darken = new ColorAdjust
+  darken.brightness = -0.7
+  darken.saturation = -0.7
 }
 
 class MapGridCell(dataSourceValue: MapGridViewDataSource) extends Rectangle {
   val dataSource: ObjectProperty[MapGridViewDataSource] = ObjectProperty.apply(dataSourceValue)
-  var highlighted = BooleanProperty.apply(false)
+  var highlighted: ObjectProperty[Option[Boolean]] = ObjectProperty.apply(None)
   var selected = BooleanProperty.apply(false)
+  var defaultSource = BooleanProperty.apply(false)
 
   width = MapGridView.cellSize
   height = MapGridView.cellSize
@@ -174,14 +187,21 @@ class MapGridCell(dataSourceValue: MapGridViewDataSource) extends Rectangle {
   def updateStyling(): Unit = {
     style = {
       if(selected.value) s"${colourStyle()} ${MapGridCell.selectedStyle}"
-      else if(highlighted.value) s"${colourStyle()} ${MapGridCell.highlightedStyle}"
+      else if(highlighted.value.isDefined && highlighted.value.get) s"${colourStyle()} ${MapGridCell.highlightedStyle}"
+      else if(defaultSource.value) s"${colourStyle()} ${MapGridCell.defaultSourceStyle}"
       else colourStyle()
     }
+
+    if(highlighted.value.isDefined) {
+      effect = if(highlighted.value.get) null else MapGridCell.darken
+    }
+    else effect = null
   }
 
   dataSource.onChange { (_, _, _) => updateStyling() }
   highlighted.onChange { (_, _, _) => updateStyling() }
   selected.onChange { (_, _, _) => updateStyling() }
+  defaultSource.onChange { (_, _, _) => updateStyling() }
   updateStyling()
 
   def colourStyle(): String = s"-fx-fill: ${dataSource.value.colourStyle()};"

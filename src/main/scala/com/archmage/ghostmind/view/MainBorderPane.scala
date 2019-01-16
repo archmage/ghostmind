@@ -13,6 +13,10 @@ class MainBorderPane extends BorderPane {
   id = "root"
 
   // higher-level organising elements
+  val centreTabPane = new TabPane {
+    style = "-fx-background-color: -darker-grey;"
+    tabClosingPolicy = TabClosingPolicy.Unavailable
+  }
   val leftTabPane = new TabPane {
     style = "-fx-background-color: -darker-grey;"
     tabClosingPolicy = TabClosingPolicy.Unavailable
@@ -32,6 +36,7 @@ class MainBorderPane extends BorderPane {
   val charactersPane = new CharactersPane
   var sessionBar: CharacterBar = _
   var eventsCatchupBox: EventsCatchupBox = _
+  var environmentBox: EnvironmentBox = _
   val skillsLabel = new Label {
     id = "WhiteText"
     text = "Skills!"
@@ -42,11 +47,6 @@ class MainBorderPane extends BorderPane {
 
   // assembly
   skillsStackPane.children = skillsLabel
-
-  rightTabPane.tabs = List(
-    tab("Contacts", contactsBox),
-    tab("Skills", skillsStackPane)
-  )
 
   // view helpers
   def tab(title: String, contentNode: Node): Tab = {
@@ -76,13 +76,22 @@ class MainBorderPane extends BorderPane {
           sessionBar = new CharacterBar(UrbanDeadModel.activeSession.get)
 
           eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
+          environmentBox = new EnvironmentBox(UrbanDeadModel.activeSession.get)
+
+          centreTabPane.tabs = List(
+            tab("events", eventsCatchupBox),
+            tab("environment", environmentBox),
+            tab("revive", new Button {
+              text = "revive"
+              onAction = _ => UrbanDeadModel.tryAndRevive()
+            })
+          )
+
           centreVBox.alignment = Pos.TopCenter
-          centreVBox.children = List(eventsCatchupBox,  /* new Button {
-            text = "Speak!"
-            onAction = _ => UrbanDeadModel.tryAndSpeak()
-          } */)
+          centreVBox.children = centreTabPane
 
           mapBox = new MapBox(UrbanDeadModel.activeSession.get)
+
           leftTabPane.tabs = List(
             tab("Maps", mapBox)
           )
