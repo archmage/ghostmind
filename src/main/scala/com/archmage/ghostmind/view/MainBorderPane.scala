@@ -1,11 +1,11 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.{Block, Suburb, UrbanDeadModel}
+import com.archmage.ghostmind.model.UrbanDeadModel
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
 import scalafx.scene.control.TabPane.TabClosingPolicy
-import scalafx.scene.control.{Button, Label, Tab, TabPane}
+import scalafx.scene.control.{Label, Tab, TabPane}
 import scalafx.scene.layout._
 
 class MainBorderPane extends BorderPane {
@@ -16,6 +16,7 @@ class MainBorderPane extends BorderPane {
   val centreTabPane = new TabPane {
     style = "-fx-background-color: -darker-grey;"
     tabClosingPolicy = TabClosingPolicy.Unavailable
+    vgrow = Priority.Always
   }
   val leftTabPane = new TabPane {
     style = "-fx-background-color: -darker-grey;"
@@ -25,10 +26,7 @@ class MainBorderPane extends BorderPane {
     style = "-fx-background-color: -darker-grey;"
     tabClosingPolicy = TabClosingPolicy.Unavailable
   }
-  val centreVBox = new VBox {
-    padding = Insets(10)
-    spacing = 10
-  }
+  val centreVBox = new VBox
   val skillsStackPane = new StackPane
 
   // actual interface elements
@@ -37,6 +35,7 @@ class MainBorderPane extends BorderPane {
   var sessionBar: CharacterBar = _
   var eventsCatchupBox: EventsCatchupBox = _
   var environmentBox: EnvironmentBox = _
+  var debugButtonBox: DebugButtonBox = _
   val skillsLabel = new Label {
     id = "WhiteText"
     text = "Skills!"
@@ -77,14 +76,11 @@ class MainBorderPane extends BorderPane {
 
           eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
           environmentBox = new EnvironmentBox(UrbanDeadModel.activeSession.get)
+          debugButtonBox = new DebugButtonBox()
 
           centreTabPane.tabs = List(
-            tab("events", eventsCatchupBox),
             tab("environment", environmentBox),
-            tab("revive", new Button {
-              text = "revive"
-              onAction = _ => UrbanDeadModel.tryAndRevive()
-            })
+            tab("debug", debugButtonBox)
           )
 
           centreVBox.alignment = Pos.TopCenter
@@ -92,13 +88,9 @@ class MainBorderPane extends BorderPane {
 
           mapBox = new MapBox(UrbanDeadModel.activeSession.get)
 
-          leftTabPane.tabs = List(
-            tab("Maps", mapBox)
-          )
-
           top = sessionBar
-          left = leftTabPane
-          right = null
+          left = mapBox
+          right = eventsCatchupBox
           center = centreVBox
           bottom = statusBar
       }

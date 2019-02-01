@@ -277,7 +277,7 @@ object UrbanDeadModel {
   }
 
   def parseEnvironmentBlock(block: Element, session: CharacterSession): Unit = {
-    println(block.innerHtml)
+//    println(block.innerHtml)
     session.environment = Some(block.text)
   }
 
