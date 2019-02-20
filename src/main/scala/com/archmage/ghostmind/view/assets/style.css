@@ -12,6 +12,7 @@
     -hp-pink: #d6627f;
     -ap-yellow: #baad6d;
     -hits-purple: #9882ad;
+    -xp-blue: #7e96b1;
 
     -red-button: #c94040;
     -red-button-hover: #e05e5e;
@@ -177,13 +178,14 @@
 #HpBar {
     -fx-accent: -hp-pink;
 }
-
 #ApBar {
     -fx-accent: -ap-yellow;
 }
-
 #HitsBar {
     -fx-accent: -hits-purple;
+}
+#XpBar {
+    -fx-accent: -xp-blue;
 }
 
 .progress-bar > .bar {

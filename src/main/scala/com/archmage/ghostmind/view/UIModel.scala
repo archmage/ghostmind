@@ -9,6 +9,12 @@ object UIModel {
   def state_=(state: UIState): Unit = {
     Platform.runLater(() => UIModel.state.value = state)
   }
+
+  var onUpdateUI: Option[() => Unit] = None
+
+  def updateUI(): Unit = {
+    if(onUpdateUI.isDefined) onUpdateUI.get.apply()
+  }
 }
 
 sealed trait UIState

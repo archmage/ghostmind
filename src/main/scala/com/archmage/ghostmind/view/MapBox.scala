@@ -12,7 +12,7 @@ object MapBox {
   val coordinatesRegex = """^([0-9]{1,2}) ([0-9]{1,2})$""".r.unanchored
 }
 
-class MapBox(val session: CharacterSession) extends VBox {
+class MapBox(val session: CharacterSession) extends VBox with Updateable {
 
   alignment = Pos.TopCenter
   padding = Insets(2, 5, 2, 5)
@@ -257,9 +257,6 @@ class MapBox(val session: CharacterSession) extends VBox {
     updateSuburbLabel()
     updateBlockLabel()
     updateCoordinatesLabel()
-
-//    println(blockText.text.value)
-//    println(blockGrid.lastHoveredCell.value)
   }
 
   init()

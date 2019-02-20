@@ -1,12 +1,12 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.CharacterSession
+import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.{Button, Label}
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, Priority, Region, VBox}
 
-class CharacterBar(val session: CharacterSession) extends HBox {
+class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
 
   alignment = Pos.CenterLeft
   spacing = 10
@@ -34,19 +34,41 @@ class CharacterBar(val session: CharacterSession) extends HBox {
     bar.id = "ApBar"
   }
 
-  val barBox = new VBox {
+  val barBox1 = new VBox {
     alignment = Pos.Center
     spacing = 3
     children = List(hpBar, apBar)
   }
 
-  val xpLabel = new Label {
-    id = "WhiteText"
-    text = "0xp"
+  val hitsBar = new GhostProgressBar {
+    bar.id = "HitsBar"
+  }
+
+  val xpBar = new GhostProgressBar {
+    bar.id = "XpBar"
+    text.text = "0xp"
+  }
+
+  val barBox2 = new VBox {
+    alignment = Pos.Center
+    spacing = 3
+    children = List(hitsBar, xpBar)
   }
 
   val growRegion = new Region {
     hgrow = Priority.Always
+  }
+
+  val refreshButton = new Button {
+    id = "rich-blue"
+    text = "refresh"
+    onAction = _ => {
+      // do some future stuff
+      // hit map.cgi again
+      // once it's done, reload the UI
+      UrbanDeadModel.parseMap(session)
+      UIModel.updateUI()
+    }
   }
 
   val characterButton = new Button {
@@ -55,17 +77,19 @@ class CharacterBar(val session: CharacterSession) extends HBox {
     onMouseReleased = _ => UIModel.state = Characters()
   }
 
-  children = List(avatar, nameplate, barBox, xpLabel, growRegion, characterButton)
+  children = List(avatar, nameplate, barBox1, barBox2, growRegion, refreshButton, characterButton)
 
   def update(): Unit =  {
+    nameplate.session = Some(session)
+    nameplate.update()
     hpBar.text.text = session.hpString()
     hpBar.bar.progress = session.hpDouble()
     apBar.text.text = session.apString()
     apBar.bar.progress = session.apDouble()
-    xpLabel.text = s"${if(session.attributes.isDefined) session.attributes.get.xp.toString else 0}xp"
-
-    nameplate.session = Some(session)
-    nameplate.update()
+    xpBar.text.text = session.xpStringLong()
+    xpBar.bar.progress = Math.min(1, session.attributes.get.xp / 100.0)
+    hitsBar.text.text = session.hitsString()
+    hitsBar.bar.progress = session.hitsDouble()
   }
 
   update()

@@ -30,6 +30,7 @@ case class CharacterSession(
   var skills: Option[List[String]] = None
 
   var events: Option[ListBuffer[Event]] = None
+  var newEvents: Int = 0
 
   var hits: Int = CharacterSession.maxDailyHits
   var lastHit: ZonedDateTime = LocalDateTime.MIN.atZone(ZoneId.systemDefault())
@@ -92,6 +93,18 @@ case class CharacterSession(
 
   def apDouble(): Double = {
     Math.max(0, apCalculated()) / CharacterSession.maxAp.doubleValue()
+  }
+
+  def hitsString(): String = {
+    s"Hits: $hits/${CharacterSession.maxDailyHits}"
+  }
+
+  def xpString(): String = {
+    s"${attributes.get.xp}xp"
+  }
+
+  def xpStringLong(): String = {
+    s"${xpString()} (${attributes.get.xp / 75}/${attributes.get.xp / 100}/${attributes.get.xp / 150})"
   }
 
   def suburbIndex(): Option[Int] = {

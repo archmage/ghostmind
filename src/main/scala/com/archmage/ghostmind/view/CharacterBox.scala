@@ -10,7 +10,7 @@ import scalafx.scene.control.{Button, Label}
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout._
 
-class CharacterBox(var session: Option[CharacterSession] = None, val index: Int) extends VBox {
+class CharacterBox(var session: Option[CharacterSession] = None, val index: Int) extends VBox with Updateable {
 
   alignment = Pos.Center
   prefWidth = 180
@@ -153,7 +153,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         hpBar.bar.progress = session.hpDouble()
         apBar.text.text = session.apString()
         apBar.bar.progress = session.apDouble()
-        hitsBar.text.text = s"Hits: ${session.hits}/${CharacterSession.maxDailyHits}"
+        hitsBar.text.text = session.hitsString()
         hitsBar.bar.progress = session.hitsDouble()
 
         onMouseClicked = event => {

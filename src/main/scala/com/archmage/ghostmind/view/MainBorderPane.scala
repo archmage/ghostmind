@@ -16,15 +16,6 @@ class MainBorderPane extends BorderPane {
 
   id = "root"
 
-  // make a white noise background that changes every 0.4s
-  /*
-  val static = new WritableImage(200, 200)
-  val grey = Color.Grey
-  for(x <- 0 until 200) for(y <- 0 until 200) {
-
-  }
-  */
-
   // higher-level organising elements
   val centreTabPane = new TabPane {
     style = "-fx-background-color: -darker-grey;"
@@ -70,6 +61,22 @@ class MainBorderPane extends BorderPane {
 
   // --- logic ---
 
+  // init stuff
+  def init(): Unit = {
+    Future[Option[ListBuffer[Option[CharacterSession]]]] {
+      UrbanDeadModel.loadCharacters()
+    } map { characters =>
+      charactersPane.children = characters.getOrElse(ListBuffer.fill(3)(None)).zipWithIndex.map { session =>
+        new CharacterBox(session._1, session._2)
+      }
+      for(i <- charactersPane.children.size() + 1 to 3) charactersPane.children.add(new CharacterBox(None, i))
+
+      UIModel.state.onChange { (_, _, _) => modelStateChanged()}
+      UIModel.onUpdateUI = Some(() => update())
+      modelStateChanged()
+    }
+  }
+
   // change state
   def modelStateChanged(): Unit = {
 
@@ -110,19 +117,10 @@ class MainBorderPane extends BorderPane {
     })
   }
 
-  // init stuff
-  def init(): Unit = {
-    Future[Option[ListBuffer[Option[CharacterSession]]]] {
-      UrbanDeadModel.loadCharacters()
-    } map { characters =>
-      charactersPane.children = characters.getOrElse(ListBuffer.fill(3)(None)).zipWithIndex.map { session =>
-        new CharacterBox(session._1, session._2)
-      }
-      for(i <- charactersPane.children.size() + 1 to 3) charactersPane.children.add(new CharacterBox(None, i))
-
-      UIModel.state.onChange { (_, _, _) => modelStateChanged()}
-      modelStateChanged()
-    }
+  def update(): Unit = {
+    sessionBar.update()
+    mapBox.update()
+    eventsCatchupBox.update()
   }
 
   init()

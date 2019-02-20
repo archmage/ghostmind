@@ -4,9 +4,8 @@ import com.archmage.ghostmind.model.CharacterSession
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
 import scalafx.scene.layout.VBox
-import scalafx.scene.text.TextAlignment
 
-class CharacterNameplate(var session: Option[CharacterSession] = None) extends VBox {
+class CharacterNameplate(var session: Option[CharacterSession] = None) extends VBox with Updateable {
 
   alignment = Pos.Center
   padding = Insets(5)

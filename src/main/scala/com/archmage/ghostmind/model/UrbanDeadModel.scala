@@ -178,6 +178,7 @@ object UrbanDeadModel {
           Event.parseEventType(event))
         session.events.get += eventInstance
       }
+      session.newEvents += events.size
 
       saveEvents(session)
     }
@@ -185,7 +186,6 @@ object UrbanDeadModel {
 
   def parseMapBlock(block: Element, session: CharacterSession): Unit = {
     try {
-
       val centreRow = (block >> elementList("tr"))(2)
       val inputs = centreRow >> elementList("input")
       val hiddenInputs = inputs.filter(element => element.attr("type") == "hidden")
