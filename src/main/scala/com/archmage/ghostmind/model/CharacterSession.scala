@@ -129,6 +129,12 @@ case class PersistentSession(
     session.hits = hits
     val lastHitValue = lastHit.getOrElse(LocalDateTime.MIN.format(DateTimeFormatter.ISO_DATE_TIME))
     session.lastHit = LocalDateTime.parse(lastHitValue, CharacterSession.dateTimeFormatter).atZone(ZoneId.systemDefault())
+
+    // reset hits if rollover has happened
+    if(session.lastHit.until(UrbanDeadModel.getNextRollover(), ChronoUnit.HOURS) >= 24) {
+      session.hits = CharacterSession.maxDailyHits
+    }
+
     session
   }
 }

@@ -14,11 +14,11 @@ object EventsCatchupBox {
 
 class EventsCatchupBox(val session: CharacterSession) extends VBox {
   spacing = 10
-  var compact = true
+  var compact = false
 
   val heading = new Label {
     id = "BoxHeading"
-    visible = false
+    visible = !compact
   }
 
   if(session.events.isEmpty) {
@@ -38,7 +38,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
       val textFlow = new TextFlow {
         children = event.textElements()
         padding = Insets(4, 0, 0, EventsCatchupBox.textPadding)
-        visible = false
+        visible = !compact
       }
 
       val eventBox = new HBox {
@@ -52,7 +52,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox {
 
     // TODO figure out why this is behaving strangely with height sizing
     val scrollPane = new GhostScrollPane {
-      minWidth = 60
+      minWidth = if(compact) 60 else 300
       content = new VBox {
         spacing = 5
         children = events

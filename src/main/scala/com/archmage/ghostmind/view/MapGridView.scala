@@ -73,6 +73,8 @@ class MapGridView(
         if(lastHoveredCell.value.isDefined) selectCell(lastHoveredCell.value.get)
       }
       else if(event.getButton == MouseButton.SECONDARY) {
+        // context menu!
+
         deselectCell()
       }
     }

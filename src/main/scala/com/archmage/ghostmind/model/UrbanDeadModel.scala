@@ -2,7 +2,6 @@ package com.archmage.ghostmind.model
 
 import java.io.{File, FileOutputStream, PrintWriter}
 import java.time._
-import java.time.temporal.ChronoUnit
 
 import com.archmage.ghostmind.view.StatusBar
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
@@ -21,12 +20,12 @@ import scala.io.Source
 object UrbanDeadModel {
   implicit val formats = DefaultFormats
 
+  val useragent = "ghostmind"
   val baseUrl = "http://urbandead.com"
   val contactsUrl = "contacts.cgi?username=%1$s&password=%2$s"
   val skillsUrl = "skills.cgi"
   val mapUrl = "map.cgi"
   val profileUrl = "profile.cgi?id="
-  val useragent = "ghostmind (https://github.com/archmage/ghostmind)"
 
   var sessions: ListBuffer[Option[CharacterSession]] = ListBuffer.fill(3)(None)
   var activeSession: Option[CharacterSession] = None
@@ -42,42 +41,28 @@ object UrbanDeadModel {
     Some(response)
   }
 
-  def loadCharacters(completion: () => Unit): Unit = {
-    new Thread(() => {
-      val file = new File(charactersFile)
-      if(file.exists()) {
-        val stream = Source.fromFile(file)
-        val string = stream.getLines.mkString
-        if(!string.isEmpty) {
-          val parsed = parse(string)
-          val characters: List[JValue] = (parsed \\ "characters").children
-          val extracted = characters.map { character =>
-            try {
-              Some(character.extract[PersistentSession])
-            }
-            catch {
-              case _: MappingException => None
-            }
-          }
-          val mapped = extracted.map { character =>
-            if(character.isEmpty) None
-            else {
-              val session = character.get.decode()
-              // logic to reset hits
-              if(session.lastHit.until(getNextRollover(), ChronoUnit.HOURS) >= 24) {
-                session.hits = CharacterSession.maxDailyHits
-              }
-              Some(session)
-            }
-          }.to[ListBuffer]
-          sessions = mapped
-        }
-        stream.close()
-      }
-      Platform.runLater(() => {
-        completion()
-      })
-    }).start()
+  def loadCharacters(): Option[ListBuffer[Option[CharacterSession]]] = {
+    val file = new File(charactersFile)
+    if(!file.exists()) return None
+
+    val stream = Source.fromFile(file)
+    val string = stream.getLines.mkString
+    if(string.isEmpty) return None
+
+    val parsed = parse(string)
+    val characters: List[JValue] = (parsed \\ "characters").children
+    val extracted = characters.map { character =>
+      try { Some(character.extract[PersistentSession]) }
+      catch { case _: MappingException => None }
+    }
+    val decoded = extracted.map { character =>
+      if(character.isEmpty) None else Some(character.get.decode())
+    }.to[ListBuffer]
+    sessions = decoded
+
+    stream.close()
+
+    Some(sessions)
   }
 
   def saveCharacters(): Unit = {

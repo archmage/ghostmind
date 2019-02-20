@@ -1,16 +1,29 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.UrbanDeadModel
+import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
 import scalafx.application.Platform
-import scalafx.geometry.{Insets, Pos}
+import scalafx.geometry.Pos
 import scalafx.scene.Node
 import scalafx.scene.control.TabPane.TabClosingPolicy
 import scalafx.scene.control.{Label, Tab, TabPane}
 import scalafx.scene.layout._
 
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future}
+
 class MainBorderPane extends BorderPane {
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   id = "root"
+
+  // make a white noise background that changes every 0.4s
+  /*
+  val static = new WritableImage(200, 200)
+  val grey = Color.Grey
+  for(x <- 0 until 200) for(y <- 0 until 200) {
+
+  }
+  */
 
   // higher-level organising elements
   val centreTabPane = new TabPane {
@@ -99,17 +112,17 @@ class MainBorderPane extends BorderPane {
 
   // init stuff
   def init(): Unit = {
-    UrbanDeadModel.loadCharacters(() => {
-      charactersPane.children = UrbanDeadModel.sessions.zipWithIndex.map { session =>
+    Future[Option[ListBuffer[Option[CharacterSession]]]] {
+      UrbanDeadModel.loadCharacters()
+    } map { characters =>
+      charactersPane.children = characters.getOrElse(ListBuffer.fill(3)(None)).zipWithIndex.map { session =>
         new CharacterBox(session._1, session._2)
       }
-      for(i <- charactersPane.children.size() + 1 to 3)
-        charactersPane.children.add(new CharacterBox(None, i))
+      for(i <- charactersPane.children.size() + 1 to 3) charactersPane.children.add(new CharacterBox(None, i))
 
       UIModel.state.onChange { (_, _, _) => modelStateChanged()}
-
       modelStateChanged()
-    })
+    }
   }
 
   init()
