@@ -7,7 +7,7 @@ import scalafx.scene.paint.Color
 import scalafx.scene.text.{Text, TextFlow}
 
 // shows what's going on at your current location
-class EnvironmentBox(session: CharacterSession) extends VBox {
+class EnvironmentBox(session: CharacterSession) extends VBox with Updateable {
 
   padding = Insets(10)
   spacing = 10
@@ -16,6 +16,13 @@ class EnvironmentBox(session: CharacterSession) extends VBox {
     id = "SolidGreyBorder"
     padding = Insets(10)
     children = new Text {
+      fill = Color.White
+      text = session.environment.getOrElse("no environment")
+    }
+  }
+
+  def update(): Unit = {
+    textFlow.children = new Text {
       fill = Color.White
       text = session.environment.getOrElse("no environment")
     }

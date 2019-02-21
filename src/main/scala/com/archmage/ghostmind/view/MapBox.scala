@@ -252,6 +252,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
   }
 
   def update(): Unit = {
+    suburbGrid.defaultSource.value = session.suburbIndex()
+    blockGrid.defaultSource.value = session.position
     updateActiveSuburb()
     updateSearchStatusLabel()
     updateSuburbLabel()

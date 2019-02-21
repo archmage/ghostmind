@@ -117,6 +117,7 @@ class MainBorderPane extends BorderPane {
     sessionBar.update()
     mapBox.update()
     eventsCatchupBox.update()
+    environmentBox.update()
   }
 
   init()

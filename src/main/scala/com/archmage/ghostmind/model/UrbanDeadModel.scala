@@ -93,6 +93,7 @@ object UrbanDeadModel {
     }
   }
 
+  // TODO examine how this loading and saving is done, it has potential for data loss
   def saveEvents(session: CharacterSession): Unit = {
     val mapped = session.events.getOrElse(ListBuffer()).map { event => event.encode() }
     val eventsJson = write(mapped)
@@ -314,8 +315,9 @@ object UrbanDeadModel {
       val mapCgiResponse = pollMapCgi(session)
       if(mapCgiResponse.isDefined) parseMapCgi(mapCgiResponse.get, session)
 
-      StatusBar.status = "saving character data..."
-      saveCharacters()
+      // disabling this while I believe it to be the source of data loss nonsense
+//      StatusBar.status = "saving character data..."
+//      saveCharacters()
 
       Platform.runLater(() => {
         session.state.value = Online()
