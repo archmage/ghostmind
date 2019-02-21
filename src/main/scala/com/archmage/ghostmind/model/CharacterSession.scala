@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
 import scalafx.beans.property.ObjectProperty
 
 import scala.collection.mutable.ListBuffer
@@ -34,6 +35,26 @@ case class CharacterSession(
 
   var hits: Int = CharacterSession.maxDailyHits
   var lastHit: ZonedDateTime = LocalDateTime.MIN.atZone(ZoneId.systemDefault())
+
+  def requestHit(): Boolean = {
+    if(hits <= 0) false
+    else {
+      hits -= 1
+      lastHit = LocalDateTime.now().atZone(ZoneId.systemDefault())
+      true
+    }
+  }
+
+  def getRequest(url: String): Option[JsoupDocument] = {
+    try {
+      Some(browser.get(url))
+    }
+    catch {
+      case e: Exception =>
+        e.printStackTrace()
+        None
+    }
+  }
 
   def hitsDouble(): Double = {
     hits / CharacterSession.maxDailyHits.doubleValue()
@@ -144,7 +165,7 @@ case class PersistentSession(
     session.lastHit = LocalDateTime.parse(lastHitValue, CharacterSession.dateTimeFormatter).atZone(ZoneId.systemDefault())
 
     // reset hits if rollover has happened
-    if(session.lastHit.until(UrbanDeadModel.getNextRollover(), ChronoUnit.HOURS) >= 24) {
+    if(session.lastHit.until(UrbanDeadModel.getNextRollover, ChronoUnit.HOURS) >= 24) {
       session.hits = CharacterSession.maxDailyHits
     }
 

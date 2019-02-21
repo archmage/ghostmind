@@ -1,5 +1,6 @@
 package com.archmage.ghostmind.view
 
+import com.archmage.ghostmind.model.UrbanDeadModel
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.scene.Scene
@@ -26,5 +27,9 @@ object MainView extends JFXApp {
       root = mainBorderPane
     }
   }
-//  stage.resizable = false
+
+  override def stopApp(): Unit = {
+    UrbanDeadModel.saveAll()
+    super.stopApp()
+  }
 }

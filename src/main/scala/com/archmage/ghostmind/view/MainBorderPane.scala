@@ -10,10 +10,9 @@ import scalafx.scene.layout._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
+import ExecutionContext.Implicits.global
 
 class MainBorderPane extends BorderPane {
-  implicit val ec: ExecutionContext = ExecutionContext.global
-
   id = "root"
 
   // higher-level organising elements
@@ -39,7 +38,7 @@ class MainBorderPane extends BorderPane {
   var sessionBar: CharacterBar = _
   var eventsCatchupBox: EventsCatchupBox = _
   var environmentBox: EnvironmentBox = _
-  var debugButtonBox: DebugButtonBox = _
+  var actionButtonBox: ActionButtonBox = _
   val skillsLabel = new Label {
     id = "WhiteText"
     text = "Skills!"
@@ -92,21 +91,18 @@ class MainBorderPane extends BorderPane {
           center = centreVBox
           bottom = statusBar
         case Main() =>
-          sessionBar = new CharacterBar(UrbanDeadModel.activeSession.get)
+          val session = UrbanDeadModel.activeSession.get
 
-          eventsCatchupBox = new EventsCatchupBox(UrbanDeadModel.activeSession.get)
-          environmentBox = new EnvironmentBox(UrbanDeadModel.activeSession.get)
-          debugButtonBox = new DebugButtonBox()
+          sessionBar = new CharacterBar(session)
 
-          centreTabPane.tabs = List(
-            tab("environment", environmentBox),
-            tab("debug", debugButtonBox)
-          )
+          eventsCatchupBox = new EventsCatchupBox(session)
+          environmentBox = new EnvironmentBox(session)
+          actionButtonBox = new ActionButtonBox(session)
 
           centreVBox.alignment = Pos.TopCenter
-          centreVBox.children = centreTabPane
+          centreVBox.children = List(environmentBox, actionButtonBox)
 
-          mapBox = new MapBox(UrbanDeadModel.activeSession.get)
+          mapBox = new MapBox(session)
 
           top = sessionBar
           left = mapBox

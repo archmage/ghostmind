@@ -145,8 +145,8 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           case Connecting() => status.style = "-fx-text-fill: #ffff00;"
           case Online() => status.style = "-fx-text-fill: #00ff00;"
         }
-        mailIcon.visible = session.events.isDefined
-        if(session.events.isDefined) mailIcon.mailCount.text = session.events.get.size.toString
+        mailIcon.visible = session.newEvents > 0
+        if(session.newEvents > 0) mailIcon.mailCount.text = session.newEvents.toString
         children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
 
         hpBar.text.text = session.hpString()

@@ -1,10 +1,15 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
+import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.{Button, Label}
+import scalafx.scene.control.Button
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, Priority, Region, VBox}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
 
@@ -60,19 +65,23 @@ class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
   }
 
   val refreshButton = new Button {
-    id = "rich-blue"
     text = "refresh"
     onAction = _ => {
-      // do some future stuff
-      // hit map.cgi again
-      // once it's done, reload the UI
-      UrbanDeadModel.parseMap(session)
-      UIModel.updateUI()
+      StatusBar.status = "refreshing..."
+      Future[Option[JsoupDocument]] {
+        UrbanDeadModel.pollMapCgi(session)
+      } map { response =>
+        UrbanDeadModel.parseMapCgi(response.get, session)
+      } map { _ =>
+        Platform.runLater(() => {
+          UIModel.updateUI()
+          StatusBar.status = "done refreshing"
+        })
+      }
     }
   }
 
   val characterButton = new Button {
-    id = "rich-blue"
     text = "characters"
     onMouseReleased = _ => UIModel.state = Characters()
   }

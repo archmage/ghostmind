@@ -37,7 +37,6 @@ object UrbanDeadModel {
 
   def request(string: String, session: CharacterSession): Option[JsoupDocument] = {
     val response = session.browser.get(string)
-    println(response.title)
     Some(response)
   }
 
@@ -106,6 +105,11 @@ object UrbanDeadModel {
     pw.close()
   }
 
+  def saveAll(): Unit = {
+    saveCharacters()
+    sessions.flatten.foreach { session => saveEvents(session) }
+  }
+
   def parseContactList(doc: JsoupDocument, session: CharacterSession): List[Contact] = {
     val contactRows = (doc >> elementList("tr")).tail.dropRight(1)
 
@@ -138,26 +142,16 @@ object UrbanDeadModel {
     List("Skill 1", "Skill 2", "Skill 3")
   }
 
-  // next steps - UI!
-  def parseMap(session: CharacterSession): Unit = {
-    if(session.hits <= 0) {
-      // can't be done, sorry
-      return
-    }
+  def pollMapCgi(session: CharacterSession): Option[JsoupDocument] = {
+    if(!session.requestHit()) None
+    else session.getRequest(s"$baseUrl/$mapUrl")
+  }
 
-    session.hits -= 1
-    session.lastHit = LocalDateTime.now().atZone(ZoneId.systemDefault())
-    val map = request(s"$baseUrl/$mapUrl", session)
+  def parseMapCgi(page: JsoupDocument, session: CharacterSession): Unit = {
+    parseNewEvents(page, session)
 
-    if(map.isEmpty) {
-      // throw or something, idfk
-      return
-    }
-
-    parseNewEvents(map.get, session)
-
-    val gtElements = map.get >> elementList(".gt")
-    val mapBlock = (map.get >> elementList("table") >> element(".c")).head
+    val gtElements = page >> elementList(".gt")
+    val mapBlock = (page >> elementList("table") >> element(".c")).head
     val statusBlock = gtElements(0)
     val environmentBlock = gtElements(1)
 
@@ -167,6 +161,7 @@ object UrbanDeadModel {
   }
 
   def parseNewEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
+    session.newEvents = 0
     val eventsElement = doc >?> element("ul")
     if(eventsElement.isDefined) {
       val events = (eventsElement >> elementList("li")).get // if this breaks i'm a moron
@@ -237,14 +232,14 @@ object UrbanDeadModel {
     val idLink = (block >> element("a")).attr("href")
     val id = idLink.substring(profileUrl.length).toInt
 
-    val profileDoc = request(s"$baseUrl/$profileUrl$id", session)
+    val profileResponse = session.getRequest(s"$baseUrl/$profileUrl$id")
 
-    if(profileDoc.isEmpty) {
+    if(profileResponse.isEmpty) {
       // throw some more stuff, who even cares lmao
       return None
     }
 
-    val profile = parseProfile(profileDoc.get, session)
+    val profile = parseProfile(profileResponse.get, session)
 
     val attributes = Some(CharacterAttributes(id, hp, ap, profile.level, profile.characterClass,
       xp, profile.description, profile.group))
@@ -266,10 +261,19 @@ object UrbanDeadModel {
     session.environment = Some(block.text)
   }
 
-  def tryAndSpeak(): Unit = {
-    if(activeSession.isEmpty) return
-    val speechAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl", Map("speech" -> "*makes spooky ghost noises*"))
-    println(speechAttempt.body)
+  // turn this into a UI button
+  def speakAction(message: String, session: CharacterSession): Option[JsoupDocument] = {
+    if(message.isEmpty || message.length > 250) None
+    else {
+      val speechAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl", Map("speech" -> message))
+      // add an event to the events thing
+      val speechEvent = new Event(
+        LocalDateTime.now().atZone(ZoneId.systemDefault()),
+        Event.browser.parseString(s"""${session.username} said "$message"""").body,
+        Speech(session.username, message))
+      session.events.get += speechEvent
+      Some(speechAttempt)
+    }
   }
 
   def tryAndRevive(): Unit = {
@@ -288,8 +292,8 @@ object UrbanDeadModel {
     })
     StatusBar.status = s"""logging in as "${session.username}"..."""
     try {
-      val contactsDoc = request(s"$baseUrl/${
-        contactsUrl.format(session.username.replaceAll(" ", "%20"), session.password)}", session)
+      val contactsResponse = session.getRequest(s"$baseUrl/${
+        contactsUrl.format(session.username.replaceAll(" ", "%20"), session.password)}")
 
       // now logged in
 
@@ -297,7 +301,7 @@ object UrbanDeadModel {
       sessions(index) = Some(session)
 
       StatusBar.status = "loading contacts..."
-      session.contacts = Some(parseContactList(contactsDoc.get, session))
+      session.contacts = Some(parseContactList(contactsResponse.get, session))
 
       StatusBar.status = "loading skills..."
       val skillsDoc = request(s"$baseUrl/$skillsUrl", session)
@@ -307,7 +311,8 @@ object UrbanDeadModel {
       loadEvents(session)
 
       StatusBar.status = "checking map.cgi..."
-      parseMap(session)
+      val mapCgiResponse = pollMapCgi(session)
+      if(mapCgiResponse.isDefined) parseMapCgi(mapCgiResponse.get, session)
 
       StatusBar.status = "saving character data..."
       saveCharacters()
@@ -325,7 +330,7 @@ object UrbanDeadModel {
     }
   }
 
-  def getNextRollover(): ZonedDateTime = {
+  def getNextRollover: ZonedDateTime = {
     // get next midnight in UK
     val midnight = LocalTime.MIDNIGHT
     val today = LocalDate.now(ZoneId.of("Europe/London"))

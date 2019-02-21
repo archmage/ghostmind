@@ -2,10 +2,13 @@ package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.CharacterSession
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.Label
+import scalafx.scene.Node
+import scalafx.scene.control.{Label, Separator}
 import scalafx.scene.image.ImageView
 import scalafx.scene.layout.{HBox, VBox}
 import scalafx.scene.text._
+
+import scala.collection.mutable.ListBuffer
 
 object EventsCatchupBox {
   val textPadding = 6
@@ -22,12 +25,12 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox with Updateab
 
   def update(): Unit = {
     if(session.events.isEmpty) {
-      heading.text = "no events since last turn"
+      heading.text = "no events"
       if(!compact) children = heading
     }
     else {
       heading.text = "since your last turn:"
-      val events = session.events.get.reverse.map { event => {
+      var events: ListBuffer[Node] = session.events.get.reverse.map { event => {
         val icon = new ImageView {
           image = event.eventType.image
           fitWidth = 26
@@ -37,18 +40,25 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox with Updateab
 
         val textFlow = new TextFlow {
           children = event.textElements()
-          padding = Insets(4, 0, 0, EventsCatchupBox.textPadding)
+          padding = Insets(0, 0, 0, EventsCatchupBox.textPadding)
           visible = !compact
         }
 
         val eventBox = new HBox {
-          alignment = Pos.CenterLeft
+          alignment = Pos.TopLeft
           children = if(compact) List(icon) else List(icon, textFlow)
         }
 
         eventBox.maxWidth <== this.width - 40 // TODO make this less shit
         eventBox
-      }}.toList
+      }}
+
+      if(session.newEvents > 0) {
+        events.insert(session.newEvents, new Separator {
+          maxWidth = Integer.MAX_VALUE
+          padding = Insets(3, 0, 3, 0)
+        })
+      }
 
       // TODO figure out why this is behaving strangely with height sizing
       val scrollPane = new GhostScrollPane {
