@@ -6,7 +6,7 @@ import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Button
-import scalafx.scene.layout.FlowPane
+import scalafx.scene.layout.{FlowPane, Priority}
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,11 +16,12 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
   padding = Insets(10)
   hgap = 5
   vgap = 5
+  hgrow = Priority.Always
 
   val speechClosure: EventHandler[ActionEvent] = _ => speech()
 
   val speechField = new GhostField {
-    maxWidth = 140
+    hgrow = Priority.Always
     promptText = "say something"
     onAction = speechClosure
   }

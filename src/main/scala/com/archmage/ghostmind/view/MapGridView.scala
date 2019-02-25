@@ -9,7 +9,7 @@ import scalafx.scene.shape.Rectangle
 import scala.collection.mutable.ListBuffer
 
 object MapGridView {
-  val cellSize = 12
+  val cellSize = 14
 
   val gridWidth = 10
   val gridHeight = 10

@@ -22,12 +22,12 @@
     -red-warn-background: #773b3c;
 
     /* suburbs */
-    -suburb-safe: #65D880;
-    -suburb-intact: #7FB8FF;
-    -suburb-moderate: #ddd01d;
-    -suburb-dangerous: #FF9859;
+    -suburb-safe: #77B788;
+    -suburb-intact: #8290B7;
+    -suburb-moderate: #F9E722;
+    -suburb-dangerous: #FFAD21;
     -suburb-critical: #E85858;
-    -suburb-abandoned: #998C99;
+    -suburb-abandoned: #706B70;
 
     /* meta block colours */
     -block-empty: #444444;

@@ -17,6 +17,7 @@ import scalafx.collections.ObservableBuffer
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
+// contains plumbing - be warned
 object UrbanDeadModel {
   implicit val formats = DefaultFormats
 
@@ -34,11 +35,6 @@ object UrbanDeadModel {
   val characterDirectory = "characters"
 
   val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
-
-  def request(string: String, session: CharacterSession): Option[JsoupDocument] = {
-    val response = session.browser.get(string)
-    Some(response)
-  }
 
   def loadCharacters(): Option[ListBuffer[Option[CharacterSession]]] = {
     val file = new File(charactersFile)
@@ -95,7 +91,10 @@ object UrbanDeadModel {
 
   // TODO examine how this loading and saving is done, it has potential for data loss
   def saveEvents(session: CharacterSession): Unit = {
-    val mapped = session.events.getOrElse(ListBuffer()).map { event => event.encode() }
+    // can't save if there's nothing there
+    if(session.events.isEmpty) return
+
+    val mapped = session.events.get.map { event => event.encode() }
     val eventsJson = write(mapped)
 
     val characterDirectoryFile = new File(characterDirectory)
@@ -175,8 +174,6 @@ object UrbanDeadModel {
         session.events.get += eventInstance
       }
       session.newEvents += events.size
-
-      saveEvents(session)
     }
   }
 
@@ -270,7 +267,7 @@ object UrbanDeadModel {
       // add an event to the events thing
       val speechEvent = new Event(
         LocalDateTime.now().atZone(ZoneId.systemDefault()),
-        Event.browser.parseString(s"""${session.username} said "$message"""").body,
+        Constants.browser.parseString(s"""${session.username} said "$message"""").body,
         Speech(session.username, message))
       session.events.get += speechEvent
       Some(speechAttempt)
@@ -305,7 +302,7 @@ object UrbanDeadModel {
       session.contacts = Some(parseContactList(contactsResponse.get, session))
 
       StatusBar.status = "loading skills..."
-      val skillsDoc = request(s"$baseUrl/$skillsUrl", session)
+      val skillsDoc = session.getRequest(s"$baseUrl/$skillsUrl")
       session.skills = Some(parseSkills(skillsDoc.get))
 
       StatusBar.status = "loading events log..."
@@ -314,10 +311,10 @@ object UrbanDeadModel {
       StatusBar.status = "checking map.cgi..."
       val mapCgiResponse = pollMapCgi(session)
       if(mapCgiResponse.isDefined) parseMapCgi(mapCgiResponse.get, session)
-
-      // disabling this while I believe it to be the source of data loss nonsense
-//      StatusBar.status = "saving character data..."
-//      saveCharacters()
+      
+      StatusBar.status = "saving character data..."
+      saveEvents(session)
+      saveCharacters()
 
       Platform.runLater(() => {
         session.state.value = Online()

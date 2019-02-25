@@ -15,8 +15,8 @@ object MapBox {
 class MapBox(val session: CharacterSession) extends VBox with Updateable {
 
   alignment = Pos.TopCenter
-  padding = Insets(2, 5, 2, 5)
-  maxWidth = 169
+  padding = Insets(2, 12, 2, 12) // 2, 5, 2, 5
+//  maxWidth = 169
 
   // the suburb for blockGrid to show
   var activeSuburb = IntegerProperty.apply(0)

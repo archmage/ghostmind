@@ -1,6 +1,6 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.UrbanDeadModel
+import com.archmage.ghostmind.model.{Constants, UrbanDeadModel}
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.scene.Scene
@@ -14,7 +14,7 @@ object MainView extends JFXApp {
   val mainBorderPane = new MainBorderPane
 
   // setup
-  val titleText = s"ghostmind"
+  val titleText = s"ghostmind - ${Constants.sessionQuotes(Constants.rng.nextInt(Constants.sessionQuotes.size))}"
 
   // finalisation
   stage = new PrimaryStage {

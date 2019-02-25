@@ -11,7 +11,6 @@ import scalafx.scene.text.{Font, FontWeight, Text}
 
 object Event {
   val dateTimeFormatter = Constants.dateTimeFormatter
-  var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
 
   val days = ".*?([0-9]+) day.*".r
   val yesterday = ".*?yesterday.*".r
@@ -101,7 +100,7 @@ case class Event(timestamp: ZonedDateTime, content: Element, eventType: EventTyp
 
 case class PersistentEvent(timestamp: String, text: String) {
   def decode(): Event = {
-    val element = Event.browser.parseString(text).body
+    val element = Constants.browser.parseString(text).body
     Event(
       LocalDateTime.parse(timestamp, Event.dateTimeFormatter).atZone(ZoneId.systemDefault()),
       element,
