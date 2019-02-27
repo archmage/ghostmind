@@ -7,7 +7,6 @@ import scalafx.scene.Scene
 import scalafx.Includes._
 import scalafx.scene.image.Image
 
-
 object MainView extends JFXApp {
 
   // views

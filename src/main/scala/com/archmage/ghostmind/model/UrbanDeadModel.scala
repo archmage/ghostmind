@@ -2,12 +2,12 @@ package com.archmage.ghostmind.model
 
 import java.io.{File, FileOutputStream, PrintWriter}
 import java.time._
+import java.time.temporal.ChronoUnit
 
 import com.archmage.ghostmind.view.StatusBar
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
-import net.ruippeixotog.scalascraper.model.Element
+import net.ruippeixotog.scalascraper.model.{Document, Element}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
@@ -27,6 +27,7 @@ object UrbanDeadModel {
   val skillsUrl = "skills.cgi"
   val mapUrl = "map.cgi"
   val profileUrl = "profile.cgi?id="
+  val searchUrl = "map.cgi?search"
 
   var sessions: ListBuffer[Option[CharacterSession]] = ListBuffer.fill(3)(None)
   var activeSession: Option[CharacterSession] = None
@@ -110,7 +111,7 @@ object UrbanDeadModel {
     sessions.flatten.foreach { session => saveEvents(session) }
   }
 
-  def parseContactList(doc: JsoupDocument, session: CharacterSession): List[Contact] = {
+  def parseContactList(doc: Document, session: CharacterSession): List[Contact] = {
     val contactRows = (doc >> elementList("tr")).tail.dropRight(1)
 
     val contacts = contactRows.map { row =>
@@ -138,16 +139,12 @@ object UrbanDeadModel {
     contacts
   }
 
-  def parseSkills(doc: JsoupDocument): List[String] = {
-    List("Skill 1", "Skill 2", "Skill 3")
-  }
-
-  def pollMapCgi(session: CharacterSession): Option[JsoupDocument] = {
+  def pollMapCgi(session: CharacterSession): Option[Document] = {
     if(!session.requestHit()) None
     else session.getRequest(s"$baseUrl/$mapUrl")
   }
 
-  def parseMapCgi(page: JsoupDocument, session: CharacterSession): Unit = {
+  def parseMapCgi(page: Document, session: CharacterSession): Unit = {
     parseNewEvents(page, session)
 
     val gtElements = page >> elementList(".gt")
@@ -160,7 +157,7 @@ object UrbanDeadModel {
     parseEnvironmentBlock(environmentBlock, session)
   }
 
-  def parseNewEvents(doc: JsoupDocument, session: CharacterSession): Unit = {
+  def parseNewEvents(doc: Document, session: CharacterSession): Unit = {
     session.newEvents = 0
     val eventsElement = doc >?> element("ul")
     if(eventsElement.isDefined) {
@@ -245,7 +242,7 @@ object UrbanDeadModel {
     attributes
   }
 
-  def parseProfile(doc: JsoupDocument, session: CharacterSession): CharacterAttributes = {
+  def parseProfile(doc: Document, session: CharacterSession): CharacterAttributes = {
     val rows = doc >> elementList("tr")
     val data = rows.map { _ >> elementList(".slam") }
     // TODO implement this later
@@ -259,19 +256,68 @@ object UrbanDeadModel {
     session.environment = Some(block.text)
   }
 
-  // turn this into a UI button
-  def speakAction(message: String, session: CharacterSession): Option[JsoupDocument] = {
+  // TODO make this reflect what message actually shows up in-game
+  def speakAction(message: String, session: CharacterSession): Option[Document] = {
     if(message.isEmpty || message.length > 250) None
     else {
-      val speechAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl", Map("speech" -> message))
+      val speechAttempt = session.browser.post(s"$baseUrl/$mapUrl", Map("speech" -> message))
       // add an event to the events thing
-      val speechEvent = new Event(
-        LocalDateTime.now().atZone(ZoneId.systemDefault()),
-        Constants.browser.parseString(s"""${session.username} said "$message"""").body,
-        Speech(session.username, message))
-      session.events.get += speechEvent
+      session.events.get += new Event(
+        content = Constants.browser.parseString(s"""${session.username} said "$message"""").body,
+        eventType = Speech(session.username, message))
       Some(speechAttempt)
     }
+  }
+
+  val searchFailRegex = """(.+\.)( \(x([0-9]+?)\))?""".r.unanchored
+
+  def searchAction(session: CharacterSession): Option[Document] = {
+    val searchAttempt = session.browser.post(s"$baseUrl/$searchUrl", Map())
+    val message = searchAttempt.body >> element(".gamemessage")
+    val eventType = Event.parseEventType(message)
+    // 3min condense
+    // this is busted af
+//    if(session.events.nonEmpty) {
+//      val maybeFail = session.events.get.head
+//      maybeFail.eventType match {
+//        case _: SearchFail =>
+//          if(maybeFail.timestamp.until(
+//            LocalDateTime.now().atZone(ZoneId.systemDefault()),
+//            ChronoUnit.MINUTES) < 3) {
+//            session.events.get.dropRight(1)
+//            val regexResults = searchFailRegex.findAllIn(maybeFail.content.text)
+//            val newContent = s"${regexResults.group(1)} (x${
+//              if(regexResults.groupCount <= 1) 2 else regexResults.group(3) + 1 })"
+//            session.events.get += new Event(
+//              content = Constants.browser.parseString(newContent).body,
+//              eventType = SearchFail()
+//            )
+//          }
+//        case _ => session.events.get += new Event(
+//          content = Constants.browser.parseString(
+//            s"""${session.username} searched and found ${
+//              eventType match {
+//                case find: SearchFind => s"a ${find.item}"
+//                case _ => "nothing"
+//              }
+//            }.""").body,
+//          eventType = eventType
+//        )
+//      }
+//    }
+//    else {
+      session.events.get += new Event(
+        content = Constants.browser.parseString(
+          s"""${session.username} searched and found ${
+            eventType match {
+              case find: SearchFind => s"a ${find.item}"
+              case _ => "nothing"
+            }
+          }.""").body,
+        eventType = eventType
+      )
+//    }
+    Some(searchAttempt)
   }
 
   def tryAndRevive(): Unit = {
@@ -301,16 +347,19 @@ object UrbanDeadModel {
       StatusBar.status = "loading contacts..."
       session.contacts = Some(parseContactList(contactsResponse.get, session))
 
-      StatusBar.status = "loading skills..."
-      val skillsDoc = session.getRequest(s"$baseUrl/$skillsUrl")
-      session.skills = Some(parseSkills(skillsDoc.get))
+      // return to this later
+//      StatusBar.status = "loading skills..."
+//      val skillsDoc = session.getRequest(s"$baseUrl/$skillsUrl")
 
       StatusBar.status = "loading events log..."
       loadEvents(session)
 
       StatusBar.status = "checking map.cgi..."
       val mapCgiResponse = pollMapCgi(session)
-      if(mapCgiResponse.isDefined) parseMapCgi(mapCgiResponse.get, session)
+      if(mapCgiResponse.isDefined) {
+        val data = MapData.parseResponse(mapCgiResponse.get)
+        parseMapCgi(mapCgiResponse.get, session)
+      }
       
       StatusBar.status = "saving character data..."
       saveEvents(session)

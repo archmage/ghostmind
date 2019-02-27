@@ -80,7 +80,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     id = "Subtitle"
   }
 
-  val nameplate = new CharacterNameplate()
+  val nameplate = new CharacterNameplate
 
   val status = new Label {
     id = "CharacterBoxStatusText"
@@ -120,7 +120,8 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
             avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.username}.png"))
           }
           catch {
-            case _: Exception =>
+            case e: Exception =>
+              e.printStackTrace()
               avatar.image = AssetManager.humanImage
           }
         }

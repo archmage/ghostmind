@@ -36,4 +36,7 @@ object AssetManager {
   val eventRevive = new Image(getClass.getResourceAsStream("syringe.png"))
   val eventAttacked = new Image(getClass.getResourceAsStream("pk.png"))
   val eventDumped = new Image(getClass.getResourceAsStream("dump.png"))
+
+  val eventSearchFind = new Image(getClass.getResourceAsStream("item.png"))
+  val eventSearchFail = new Image(getClass.getResourceAsStream("search.png"))
 }

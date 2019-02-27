@@ -3,7 +3,6 @@ package com.archmage.ghostmind.model
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
 import com.archmage.ghostmind.view.assets.AssetManager
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.model.Element
 import scalafx.scene.image.Image
 import scalafx.scene.paint.{Color, Paint}
@@ -60,12 +59,16 @@ object Event {
       case Revive.regex(source) => Revive(source)
       case Dumped.regex(source) => Dumped(source)
       case Attacked.regex(source, verb, weapon, damage) => Attacked(source, verb, weapon, damage.toInt)
+      case SearchFind.regex(item) => SearchFind(item)
+      case SearchFail.regex() => SearchFail()
       case _ => Default()
     }
   }
 }
 
-case class Event(timestamp: ZonedDateTime, content: Element, eventType: EventType) {
+case class Event(timestamp: ZonedDateTime = LocalDateTime.now().atZone(ZoneId.systemDefault()),
+                 content: Element,
+                 eventType: EventType) {
   def formatContent(): String = {
     val andAgain = """\.\.\.and again\.""".r.unanchored
     val count = andAgain.findAllIn(content.text).length
@@ -216,3 +219,21 @@ case class Dumped(source: String) extends EventType(AssetManager.eventDumped)
 
 object Attacked extends Regex("""(.+?) (.+?) you with a (.+?) for ([0-9]+?) damage\.""")
 case class Attacked(source: String, verb: String, weapon: String, damage: Int) extends EventType(AssetManager.eventAttacked)
+
+object SearchFind extends Regex(""".*?Searching|searched .+? a (.+?)\.""")
+case class SearchFind(item: String) extends EventType(AssetManager.eventSearchFind)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"${UrbanDeadModel.activeSession.get.username} searched and found a "),
+    text(s"$item.", Color.LightCyan, Font.font(null, FontWeight.Bold, 12))
+  )
+}
+
+object SearchFail extends Regex(""".+? search|searched .+? nothing\.""")
+case class SearchFail() extends EventType(AssetManager.eventSearchFail)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"${UrbanDeadModel.activeSession.get.username} searched and found nothing.", Color.web("#a4a9b2"))
+  )
+}
+

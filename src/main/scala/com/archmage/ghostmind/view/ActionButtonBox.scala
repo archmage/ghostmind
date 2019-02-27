@@ -2,14 +2,14 @@ package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
 import javafx.event.{ActionEvent, EventHandler}
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
+import net.ruippeixotog.scalascraper.model.Document
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Button
 import scalafx.scene.layout.{FlowPane, Priority}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class ActionButtonBox(session: CharacterSession) extends FlowPane {
   alignment = Pos.TopLeft
@@ -19,9 +19,11 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
   hgrow = Priority.Always
 
   val speechClosure: EventHandler[ActionEvent] = _ => speech()
+  val searchClosure: EventHandler[ActionEvent] = _ => search()
 
   val speechField = new GhostField {
     hgrow = Priority.Always
+    prefWidth = 300
     promptText = "say something"
     onAction = speechClosure
   }
@@ -31,21 +33,36 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
     onAction = speechClosure
   }
 
-  def speech(): Unit = {
-    val message = speechField.text.value.trim
-    speechField.text.value = ""
-    StatusBar.status = "raising our voice..."
-    Future[Option[JsoupDocument]] {
-      UrbanDeadModel.speakAction(message, session)
+  val searchButton = new Button {
+    text = "search"
+    onAction = searchClosure
+  }
+
+  def performAction(startMessage: String, endMessage: String, action: () => Option[Document]): Unit = {
+    StatusBar.status = startMessage
+    Future[Option[Document]] {
+      action.apply()
     } map { response =>
       UrbanDeadModel.parseMapCgi(response.get, session)
     } map { _ =>
       Platform.runLater(() => {
         UIModel.updateUI()
-        StatusBar.status = "done speaking"
+        StatusBar.status = endMessage
       })
     }
   }
 
-  children = List(speechField, speechSubmitButton)
+  def speech(): Unit = {
+    val message = speechField.text.value.trim
+    speechField.text.value = ""
+    performAction("raising our voice...", "done speaking",
+      () => UrbanDeadModel.speakAction(message, session))
+  }
+
+  def search(): Unit = {
+    performAction("searching for an item...", "done searching",
+      () => UrbanDeadModel.searchAction(session))
+  }
+
+  children = List(searchButton, speechField, speechSubmitButton)
 }

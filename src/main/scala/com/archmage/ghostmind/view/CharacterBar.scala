@@ -1,7 +1,7 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
+import net.ruippeixotog.scalascraper.model.Document
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Button
@@ -9,7 +9,7 @@ import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.layout.{HBox, Priority, Region, VBox}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
 
@@ -68,7 +68,7 @@ class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
     text = "refresh"
     onAction = _ => {
       StatusBar.status = "refreshing..."
-      Future[Option[JsoupDocument]] {
+      Future[Option[Document]] {
         UrbanDeadModel.pollMapCgi(session)
       } map { response =>
         UrbanDeadModel.parseMapCgi(response.get, session)

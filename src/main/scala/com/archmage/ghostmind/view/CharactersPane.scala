@@ -1,17 +1,22 @@
 package com.archmage.ghostmind.view
 
+import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.layout.HBox
 
-class CharactersPane(characters: CharacterBox*) extends HBox with Updateable {
+class CharactersPane(_characters: CharacterBox*) extends HBox with Updateable {
+
+  val characters = new ObservableBuffer[CharacterBox]
+  characters.onChange( (_, _) => children = characters )
+  characters ++= _characters
 
   alignment = Pos.Center
   padding = Insets(5)
   spacing = 10
 
-  children = characters
+  children = _characters
 
   def update(): Unit = {
-    characters.foreach { _.update() }
+    characters.forEach { _.update() }
   }
 }

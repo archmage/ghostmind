@@ -58,10 +58,10 @@ class MainBorderPane extends BorderPane {
     } map { characters =>
       StatusBar.status = "assembling character UI..."
       charactersPane = new CharactersPane
-      charactersPane.children = characters.getOrElse(ListBuffer.fill(3)(None)).zipWithIndex.map { session =>
+      charactersPane.characters ++= characters.getOrElse(ListBuffer.fill(3)(None)).zipWithIndex.map { session =>
         new CharacterBox(session._1, session._2)
       }
-      for(i <- charactersPane.children.size() + 1 to 3) charactersPane.children.add(new CharacterBox(None, i))
+      for(i <- charactersPane.children.size() + 1 to 3) charactersPane.characters += new CharacterBox(None, i)
 
       StatusBar.status = "finalising..."
       UIModel.state.onChange { (_, _, _) => modelStateChanged()}
@@ -109,6 +109,7 @@ class MainBorderPane extends BorderPane {
   }
 
   def update(): Unit = {
+    charactersPane.update()
     sessionBar.update()
     mapBox.update()
     eventsCatchupBox.update()

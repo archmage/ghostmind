@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser.JsoupDocument
+import net.ruippeixotog.scalascraper.model.Document
 import scalafx.beans.property.ObjectProperty
 
 import scala.collection.mutable.ListBuffer
@@ -45,7 +45,7 @@ case class CharacterSession(
     }
   }
 
-  def getRequest(url: String): Option[JsoupDocument] = {
+  def getRequest(url: String): Option[Document] = {
     try {
       Some(browser.get(url))
     }
