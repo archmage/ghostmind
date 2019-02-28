@@ -60,8 +60,12 @@ object Event {
       case Dumped.regex(source) => Dumped(source)
       case Attacked.regex(source, verb, weapon, damage) => Attacked(source, verb, weapon, damage.toInt)
       case SearchFind.regex(item) => SearchFind(item)
+      case SearchDiscard.regex(item) => SearchDiscard(item)
+      case SearchEncumbered.regex(item) => SearchEncumbered(item)
       case SearchFail.regex() => SearchFail()
-      case _ => Default()
+      case _ =>
+        println(eventText.text)
+        Default()
     }
   }
 }
@@ -220,16 +224,36 @@ case class Dumped(source: String) extends EventType(AssetManager.eventDumped)
 object Attacked extends Regex("""(.+?) (.+?) you with a (.+?) for ([0-9]+?) damage\.""")
 case class Attacked(source: String, verb: String, weapon: String, damage: Int) extends EventType(AssetManager.eventAttacked)
 
-object SearchFind extends Regex(""".*?Searching|searched .+? a (.+?)\.""")
+object SearchFind extends Regex(""".*?(?:Searching|searched) .+? a (.+?)[\.,]""")
 case class SearchFind(item: String) extends EventType(AssetManager.eventSearchFind)
 with TextElements {
   override def textElements: List[Text] = List(
     text(s"${UrbanDeadModel.activeSession.get.username} searched and found a "),
-    text(s"$item.", Color.LightCyan, Font.font(null, FontWeight.Bold, 12))
+    text(s"$item.", Color.web("#83dbb0"), Font.font(null, FontWeight.Bold, 12))
   )
 }
 
-object SearchFail extends Regex(""".+? search|searched .+? nothing\.""")
+object SearchDiscard extends Regex(""".+?(?:find|found) a (.+?), and discard(?:ed)? it as useless\.""")
+case class SearchDiscard(item: String) extends EventType(AssetManager.eventSearchDiscard)
+with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"${UrbanDeadModel.activeSession.get.username} found a "),
+    text(s"$item", Color.web("#d14f65"), Font.font(null, FontWeight.Bold, 12)),
+    text(s", and discarded it as useless.")
+  )
+}
+
+object SearchEncumbered extends Regex(""".+?(?:find|found) a (.+?), but (?:was|are) carrying too much to pick it up\.""")
+case class SearchEncumbered(item: String) extends EventType(AssetManager.eventSearchEncumbered)
+  with TextElements {
+  override def textElements: List[Text] = List(
+    text(s"${UrbanDeadModel.activeSession.get.username} found a "),
+    text(s"$item", Color.web("#d14f65"), Font.font(null, FontWeight.Bold, 12)),
+    text(s", but was carrying too much to pick it up.")
+  )
+}
+
+object SearchFail extends Regex(""".+? (?:search|searched) .+? nothing\.""")
 case class SearchFail() extends EventType(AssetManager.eventSearchFail)
 with TextElements {
   override def textElements: List[Text] = List(

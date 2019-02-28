@@ -308,12 +308,14 @@ object UrbanDeadModel {
 //    else {
       session.events.get += new Event(
         content = Constants.browser.parseString(
-          s"""${session.username} searched and found ${
+          s"""${session.username} ${
             eventType match {
-              case find: SearchFind => s"a ${find.item}"
-              case _ => "nothing"
+              case find: SearchFind => s"searched and found a ${find.item}."
+              case discard: SearchDiscard => s"found a ${discard.item}, and discarded it as useless."
+              case encumbered: SearchEncumbered => s"found a ${encumbered.item}, but was carrying too much to pick it up."
+              case _ => "searched and found nothing."
             }
-          }.""").body,
+          }""").body,
         eventType = eventType
       )
 //    }

@@ -38,5 +38,7 @@ object AssetManager {
   val eventDumped = new Image(getClass.getResourceAsStream("dump.png"))
 
   val eventSearchFind = new Image(getClass.getResourceAsStream("item.png"))
+  val eventSearchDiscard = new Image(getClass.getResourceAsStream("trash.png"))
+  val eventSearchEncumbered = new Image(getClass.getResourceAsStream("weight.png"))
   val eventSearchFail = new Image(getClass.getResourceAsStream("search.png"))
 }
