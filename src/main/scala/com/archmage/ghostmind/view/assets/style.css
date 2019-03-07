@@ -34,6 +34,7 @@
     -block-revive-point: #A1CB9B;
     -block-normal-building: #666666;
     -block-religious-building: #FFFFFF;
+    -block-dark-building: #212121;
 
     /* non-building blocks */
     -block-carpark: -block-empty;
@@ -56,12 +57,12 @@
 
     /* buildings blocks */
     -block-autorepair: #ED9E55;
-    -block-bank: -block-normal-building;
+    -block-bank: -block-dark-building;
     -block-building: -block-normal-building;
     -block-cathedral: -block-religious-building;
     -block-church: -block-religious-building;
-    -block-cinema: #212121;
-    -block-club: #645370;
+    -block-cinema: -block-dark-building;
+    -block-club: -block-dark-building;
     -block-enclosure: #936557;
     -block-factory: #e8e433;
     -block-firestation: #E85858;
