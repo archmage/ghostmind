@@ -10,6 +10,7 @@ lazy val root = (project in file(".")).
       "org.scalafx" %% "scalafx" % "11-R16",
       "org.json4s" %% "json4s-native" % "3.5.2",
       "org.json4s" %% "json4s-jackson" % "3.5.2",
-      "net.ruippeixotog" %% "scala-scraper" % "2.1.0"
+      "net.ruippeixotog" %% "scala-scraper" % "2.1.0",
+      "org.scala-graph" %% "graph-core" % "1.12.5"
     )
   )
