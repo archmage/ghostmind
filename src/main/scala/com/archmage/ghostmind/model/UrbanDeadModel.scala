@@ -328,6 +328,18 @@ object UrbanDeadModel {
     Some(searchAttempt)
   }
 
+  def moveAction(session: CharacterSession, x: Int, y: Int): Option[Document] = {
+    if(activeSession.isEmpty || session.position.isEmpty) return None
+    val sessionBlock = Block.blocks(session.position.get)
+    val coordinates =
+      (Math.max(0, Math.min(99, sessionBlock.x + Math.signum(x))).toInt,
+        Math.max(0, Math.min(99, sessionBlock.y + Math.signum(y))).toInt)
+    val moveAttempt = session.browser.post(s"$baseUrl/$mapUrl", Map("v" ->
+      s"${coordinates._1}-${coordinates._2}"))
+
+    Some(moveAttempt)
+  }
+
   def tryAndRevive(): Unit = {
     if(activeSession.isEmpty) return
     val reviveAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl?use-z", Map(

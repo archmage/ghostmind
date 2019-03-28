@@ -38,8 +38,18 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
     onAction = searchClosure
   }
 
-  // movement buttons
+  // TODO disable ones that won't do anything
+  val movementButtons = List(
+    (-1, -1, "NW"), (0, -1, "N"), (1, -1, "NE"),
+    (-1, 0, "W"), (0, 0, "."), (1, 0, "E"),
+    (-1, 1, "SW"), (0, 1, "S"), (1, 1, "SE")
+  ).map { data => new Button {
+    text = data._3
+    onAction = _ => move(data._1, data._2)
+    // disable = (if data coords + session.coords is outside bounds!)
+  }}
 
+  movementButtons(4).disable = true
 
   def performAction(startMessage: String, endMessage: String, action: () => Option[Document]): Unit = {
     StatusBar.status = startMessage
@@ -67,5 +77,13 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
       () => UrbanDeadModel.searchAction(session))
   }
 
-  children = List(searchButton, speechField, speechSubmitButton)
+  def move(x: Int, y: Int): Unit = {
+    performAction("moving...", "done moving",
+      () => UrbanDeadModel.moveAction(session, x, y))
+  }
+
+  children = List(searchButton, speechField, speechSubmitButton) :::
+    movementButtons
+
+  // TODO make this way prettier
 }
