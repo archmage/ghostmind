@@ -38,6 +38,9 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
     onAction = searchClosure
   }
 
+  // movement buttons
+
+
   def performAction(startMessage: String, endMessage: String, action: () => Option[Document]): Unit = {
     StatusBar.status = startMessage
     Future[Option[Document]] {

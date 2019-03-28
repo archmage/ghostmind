@@ -41,6 +41,16 @@ class MapGridView(
   // the datasources index of the "default" datasource
   var defaultSource: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
 
+  // helpers!
+  def lastHoveredDataSourceIndex: Option[Int] = {
+    if(lastHoveredCell.value.isDefined) Some(dataSourceIndexFromCellIndex(lastHoveredCell.value.get))
+    else None
+  }
+  def selectedDataSourceIndex: Option[Int] = {
+    if(selectedCell.value.isDefined) Some(dataSourceIndexFromCellIndex(selectedCell.value.get))
+    else None
+  }
+
   // x and y offsets for the data source
   var offsetX: IntegerProperty = IntegerProperty.apply(0)
   var offsetY: IntegerProperty = IntegerProperty.apply(0)
@@ -103,12 +113,10 @@ class MapGridView(
   // update data sources for cells, and highlights
   def update(): Unit = {
     cells.zipWithIndex.foreach { cellWithIndex =>
-      val (cellX, cellY) = MapGridView.cellCoordinatesFromIndex(cellWithIndex._2)
-      val newDataSourceValue = dataSources.lift.apply(
-        (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).get
+      val dataSourceIndex = dataSourceIndexFromCellIndex(cellWithIndex._2)
+      val newDataSourceValue = dataSources.lift.apply(dataSourceIndex).get
       cellWithIndex._1.dataSource.value = newDataSourceValue
-      cellWithIndex._1.defaultSource.value = defaultSource.value.isDefined &&
-        dataSourceIndexFromCoordinates(cellX + offsetX.value, cellY + offsetY.value) == defaultSource.value.get
+      cellWithIndex._1.defaultSource.value = defaultSource.value.isDefined && dataSourceIndex == defaultSource.value.get
     }
 
     updateHighlights()
@@ -138,12 +146,21 @@ class MapGridView(
     _singleMatch = None
   }
 
+  // translates datasource index to datasource xy
   def dataSourcesCoordinatesFromIndex(index: Int): (Int, Int) = {
     (index % dataSourceWidth, index / dataSourceWidth)
   }
 
+  // translates datasource xy to datasource index
   def dataSourceIndexFromCoordinates(x: Int, y: Int): Int = {
     x + dataSourceWidth * y
+  }
+
+  // translates cell index to datasource index
+  def dataSourceIndexFromCellIndex(cellIndex: Int): Int = {
+    val x = offsetX.value + cellIndex % MapGridView.gridWidth
+    val y = offsetY.value + cellIndex / MapGridView.gridHeight
+    x + y * dataSourceWidth
   }
 
   def selectCell(index: Int): Unit = {
@@ -170,7 +187,7 @@ class MapGridView(
 object MapGridCell {
   val defaultSourceStyle = "-fx-stroke: white; -fx-stroke-width: 2; -fx-stroke-dash-array: 2 1 2 1; -fx-stroke-type: inside;"
   val highlightedStyle = "-fx-stroke: #e5b244; -fx-stroke-width: 1; -fx-stroke-type: inside;"
-  val selectedStyle = "-fx-stroke: purple; -fx-stroke-width: 1; -fx-stroke-type: inside;"
+  val selectedStyle = "-fx-stroke: yellow; -fx-stroke-width: 2; -fx-stroke-type: inside;"
 
   val darken = new ColorAdjust
   darken.brightness = -0.7

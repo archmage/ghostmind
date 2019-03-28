@@ -1,7 +1,7 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.{Block, CharacterSession, Suburb}
-import scalafx.beans.property.IntegerProperty
+import scalafx.beans.property.{IntegerProperty, ObjectProperty}
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
 import scalafx.scene.layout.VBox
@@ -21,8 +21,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
   // the suburb for blockGrid to show
   var activeSuburb = IntegerProperty.apply(0)
 
-  // search stuff
-  var lastBlockMatch: Option[Int] = None
+  // the block to be used for labels
+  var activeBlock: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
 
   // -- ui stuff --
   val searchField = new GhostField {
@@ -62,7 +62,12 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     text = getSessionCoordinates
     margin = Insets(4, 0, 0, 0)
   }
-  // buncha closures to do activeSuburb changes
+  val coordinatesDeltaLabel = new Label {
+    id = "WhiteText"
+    text = getSessionCoordinatesDelta
+    margin = Insets(2, 0, 0, 0)
+  }
+
   val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10)
 
   def init(): Unit = {
@@ -92,7 +97,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     suburbGrid.defaultSource.value = session.suburbIndex()
     blockGrid.defaultSource.value = session.position
 
-    children = List(searchField, searchStatusLabel, suburbLabel, suburbGrid, blockLabelVBox, blockGrid, coordinatesLabel)
+    children = List(searchField, searchStatusLabel, suburbLabel, suburbGrid, blockLabelVBox, blockGrid,
+      coordinatesLabel, coordinatesDeltaLabel)
   }
 
   def onSearch(text: String): Unit = {
@@ -162,6 +168,21 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     else "[x, y]"
   }
 
+  def getSessionCoordinatesDelta: String = {
+    if(session.position.isDefined && activeBlock.value.isDefined) {
+      val x = activeBlock.value.get % blockGrid.dataSourceWidth - session.position.get % blockGrid.dataSourceWidth
+      val y = activeBlock.value.get / blockGrid.dataSourceWidth - session.position.get / blockGrid.dataSourceWidth
+      (x, y) match {
+        case (0, 0) => "you are here"
+        case _ =>
+          s"${if(x != 0) s"${Math.abs(x)} ${if(x > 0) "east" else "west"}" else ""}" +
+            s"${if(x != 0 && y != 0) " and " else ""}" +
+            s"${if(y != 0) s"${Math.abs(y)} ${if(y > 0) "south" else "north"}" else ""}"
+      }
+    }
+    else ""
+  }
+
   // -- map datasource modifier --
 
   def updateBlockGridOffset(): Unit = {
@@ -181,6 +202,22 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
       else if (session.suburbIndex().isDefined) session.suburbIndex().get
       else activeSuburb.value
     }
+  }
+
+  def updateActiveBlock(): Unit = {
+    activeBlock.value = {
+      if(blockGrid.singleMatch.isDefined)
+        Some(blockGrid.singleMatch.get)
+      else if(blockGrid.lastHoveredCell.value.isDefined)
+        blockGrid.lastHoveredDataSourceIndex
+      else if(blockGrid.selectedCell.value.isDefined)
+        blockGrid.selectedDataSourceIndex
+      else if (session.position.isDefined && activeSuburb.value == session.suburbIndex().get)
+        Some(session.position.get)
+      else None
+    }
+
+    // println(s"${if(activeBlock.value.isDefined) Block.blocks(activeBlock.value.get) else "no active block"}")
   }
 
   def updateSearchStatusLabel(): Unit = {
@@ -205,7 +242,7 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
       if(suburbGrid.lastHoveredCell.value.isDefined) {
         suburbGrid.cells(suburbGrid.lastHoveredCell.value.get).dataSource.value.getName
       }
-      else Suburb.suburbs(activeSuburb.value).name
+      else suburbGrid.dataSources(activeSuburb.value).getName
     }
   }
 
@@ -214,51 +251,42 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
       if(blockGrid.lastHoveredCell.value.isDefined) {
         blockGrid.cells(blockGrid.lastHoveredCell.value.get).dataSource.value.getName
       }
-      else if(blockGrid.singleMatch.isDefined) {
-        blockGrid.dataSources(blockGrid.singleMatch.get).getName
-      }
-      else if(blockGrid.selectedCell.value.isDefined) {
-        blockGrid.cells(blockGrid.selectedCell.value.get).dataSource.value.getName
-      }
-      else if(session.suburbIndex().isDefined && activeSuburb.value != session.suburbIndex().get) "------"
-      else getSessionBlock
+
+      else if(activeBlock.value.isDefined) blockGrid.dataSources(activeBlock.value.get).getName
+      else "------"
     }
   }
 
   def updateCoordinatesLabel(): Unit = {
     val coordinates: Option[(Int, Int)] = {
       val block: Option[Block] = {
-        if(blockGrid.lastHoveredCell.value.isDefined) {
-          Some(blockGrid.cells(blockGrid.lastHoveredCell.value.get).dataSource.value.asInstanceOf[Block])
-        }
-        else if(blockGrid.singleMatch.isDefined) {
-          Some(blockGrid.dataSources(blockGrid.singleMatch.get).asInstanceOf[Block])
-        }
-        else if(blockGrid.selectedCell.value.isDefined) {
-          Some(blockGrid.cells(blockGrid.selectedCell.value.get).dataSource.value.asInstanceOf[Block])
-        }
-        else if(session.suburbIndex().isDefined && activeSuburb.value != session.suburbIndex().get) None
-        else if(session.position.isDefined) Some(Block.blocks(session.position.get))
+        if(activeBlock.value.isDefined) Some(blockGrid.dataSources(activeBlock.value.get).asInstanceOf[Block])
         else None
       }
       if(block.isDefined) Some((block.get.x, block.get.y))
       else None
     }
 
-    coordinatesLabel.text = if(coordinates.isDefined) {
-      s"[${coordinates.get._1}, ${coordinates.get._2}]"
+    coordinatesLabel.text = {
+      if(coordinates.isDefined) s"[${coordinates.get._1}, ${coordinates.get._2}]"
+      else "[--, --]"
     }
-    else "[--, --]"
+  }
+
+  def updateCoordinatesDeltaLabel(): Unit = {
+    coordinatesDeltaLabel.text = getSessionCoordinatesDelta
   }
 
   def update(): Unit = {
     suburbGrid.defaultSource.value = session.suburbIndex()
     blockGrid.defaultSource.value = session.position
     updateActiveSuburb()
+    updateActiveBlock()
     updateSearchStatusLabel()
     updateSuburbLabel()
     updateBlockLabel()
     updateCoordinatesLabel()
+    updateCoordinatesDeltaLabel()
   }
 
   init()

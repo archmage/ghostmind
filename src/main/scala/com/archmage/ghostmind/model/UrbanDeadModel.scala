@@ -107,8 +107,14 @@ object UrbanDeadModel {
   }
 
   def saveAll(): Unit = {
+    println("saving character states...")
     saveCharacters()
-    sessions.flatten.foreach { session => saveEvents(session) }
+    println("saving event data...")
+    sessions.flatten.foreach { session => {
+      saveEvents(session)
+      println(s"""saved events of "${session.username}"""")
+    }}
+    println("done saving!")
   }
 
   def parseContactList(doc: Document, session: CharacterSession): List[Contact] = {
