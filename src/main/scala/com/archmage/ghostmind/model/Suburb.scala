@@ -1,15 +1,18 @@
 package com.archmage.ghostmind.model
 
 import java.io.File
+import java.rmi.UnknownHostException
 
 import com.archmage.ghostmind.view.MapGridViewDataSource
 import net.ruippeixotog.scalascraper.dsl.DSL._
+import net.ruippeixotog.scalascraper.model.Document
 import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
 
 import scala.io.Source
 
+// TODO keep a local cache of danger values
 object Suburb {
   implicit val formats = DefaultFormats
   val suburbsFile = "suburbs.json"
@@ -37,8 +40,19 @@ object Suburb {
 
   val dangerMapStyleRegex = """background:#([0-9A-F]{3})""".r.unanchored
 
-  def loadDangerMap(): Unit = {
-    val wikiSuburbResponse = Constants.browser.get("http://wiki.urbandead.com/index.php/Suburb")
+  def loadDangerMap(): Option[Exception] = {
+    val wikiSuburbResponse: Document = try {
+       Constants.browser.get("http://wiki.urbandead.com/index.php/Suburb")
+    }
+    catch {
+      case uhe: UnknownHostException =>
+        uhe.printStackTrace()
+        return Some(uhe)
+      case e: Exception =>
+        e.printStackTrace()
+        return Some(e)
+    }
+
     val table = (wikiSuburbResponse >> elementList("table"))(1) // bad but whatever
     val cells = table >> elementList("td")
     val dangerLevels: List[DangerLevel] = cells.map { cell =>
@@ -59,6 +73,8 @@ object Suburb {
       }
     }
     for(i <- suburbs.indices) suburbs(i).danger = dangerLevels(i)
+
+    None
   }
 }
 

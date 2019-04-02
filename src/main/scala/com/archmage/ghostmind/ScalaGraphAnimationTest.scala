@@ -15,7 +15,7 @@ import scala.language.postfixOps
 
 object ScalaGraphAnimationTest extends JFXApp {
 
-  def generate(): (List[Circle], List[Line]) = {
+  def generate(width: Int, height: Int): (List[Circle], List[Line]) = {
     val sampleGraph = ScalaGraphTest.propagateGraph(Graph(), ScalaGraphTest.propagateFromRandomNode)
 
     val colours = (0 until sampleGraph.nodes.size).map { _ =>
@@ -27,8 +27,8 @@ object ScalaGraphAnimationTest extends JFXApp {
 
     val nodes: List[Circle] = sampleGraph.nodes.map { node =>
       new Circle {
-        centerX = 45 + Constants.rng.nextInt(640 - 90)
-        centerY = 45 + Constants.rng.nextInt(480 - 90)
+        centerX = 45 + Constants.rng.nextInt(width - 90)
+        centerY = 45 + Constants.rng.nextInt(height - 90)
         radius = 5
         fill = colours(node.value - 1)
       }
@@ -52,8 +52,8 @@ object ScalaGraphAnimationTest extends JFXApp {
     (nodes, edges)
   }
 
-  def generatePane() = {
-    val graph = generate()
+  def generatePane(width: Int, height: Int) = {
+    val graph = generate(width, height)
 
     val timeline = new Timeline {
       cycleCount = Timeline.Indefinite
@@ -72,13 +72,15 @@ object ScalaGraphAnimationTest extends JFXApp {
   }
 
   def initialise(): Unit = {
+    val windowWidth = 1280
+    val windowHeight = 200
     stage = new PrimaryStage {
-      width = 640
-      height = 480
+      width = windowWidth // 640
+      height = windowHeight // 480
       scene = new Scene {
-        content = generatePane()
+        content = generatePane(windowWidth, windowHeight)
         fill = Color.Black
-        onMouseClicked = { _ => content = generatePane() }
+        onMouseClicked = { _ => content = generatePane(windowWidth, windowHeight) }
       }
     }
   }
