@@ -358,45 +358,49 @@ object UrbanDeadModel {
     session.state.value = Connecting
 
     StatusBar.status = s"""logging in as "${session.username}"..."""
-    try {
-      val contactsResponse = session.getRequest(s"$baseUrl/${
-        contactsUrl.format(session.username.replaceAll(" ", "%20"), session.password)}")
 
-      // now logged in
+    val contactsResponse = session.getRequest(s"$baseUrl/${
+      contactsUrl.format(session.username.replaceAll(" ", "%20"), session.password)}")
 
-      // do some database dumping here?
-      sessions(index) = Some(session)
+    val contactsFormOption = contactsResponse >?> element("form")
+    if(contactsFormOption.isEmpty) {
+      // failed to log in; return
+      StatusBar.status = s"""failed to login as "${session.username}"; username or password were incorrect."""
+      session.state.value = Offline
+      return false
+    }
 
-      StatusBar.status = "loading contacts..."
-      session.contacts = Some(parseContactList(contactsResponse.get, session))
+    // now logged in
 
-      // return to this later
+    // do some database dumping here?
+    sessions(index) = Some(session)
+
+    StatusBar.status = "loading contacts..."
+    session.contacts = Some(parseContactList(contactsResponse.get, session))
+
+    // return to this later
 //      StatusBar.status = "loading skills..."
 //      val skillsDoc = session.getRequest(s"$baseUrl/$skillsUrl")
 
-      StatusBar.status = "loading events log..."
-      loadEvents(session)
+    StatusBar.status = "loading events log..."
+    loadEvents(session)
 
-      StatusBar.status = "checking map.cgi..."
-      val mapCgiResponse = pollMapCgi(session)
-      if(mapCgiResponse.isDefined) {
-        val data = MapData.parseResponse(mapCgiResponse.get)
-        parseMapCgi(mapCgiResponse.get, session)
-      }
-      
-      StatusBar.status = "saving character data..."
-      saveEvents(session)
-      saveCharacters()
+    StatusBar.status = "checking map.cgi..."
+    val mapCgiResponse = pollMapCgi(session)
+    if(mapCgiResponse.isDefined) {
+      val data = MapData.parseResponse(mapCgiResponse.get)
+      parseMapCgi(mapCgiResponse.get, session)
+    }
 
-      session.state.value = Online
-      StatusBar.status = s"""logged in as "${session.username}""""
-      true
-    }
-    catch {
-      case e: Exception =>
-        e.printStackTrace()
-        false
-    }
+    StatusBar.status = "saving character data..."
+    saveEvents(session)
+    saveCharacters()
+
+    session.state.value = Online
+    StatusBar.status = s"""logged in as "${session.username}""""
+    true
+
+    // TODO improve error handling of failed logins
   }
 
   def getNextRollover: ZonedDateTime = {

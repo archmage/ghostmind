@@ -48,9 +48,6 @@ object Suburb {
       case uhe: UnknownHostException =>
         uhe.printStackTrace()
         return Some(uhe)
-      case e: Exception =>
-        e.printStackTrace()
-        return Some(e)
     }
 
     val table = (wikiSuburbResponse >> elementList("table"))(1) // bad but whatever

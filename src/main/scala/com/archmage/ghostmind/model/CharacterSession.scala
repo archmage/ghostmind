@@ -1,5 +1,6 @@
 package com.archmage.ghostmind.model
 
+import java.rmi.UnknownHostException
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
@@ -49,12 +50,13 @@ case class CharacterSession(
   }
 
   def getRequest(url: String): Option[Document] = {
+    println(url)
     try {
       Some(browser.get(url))
     }
     catch {
-      case e: Exception =>
-        e.printStackTrace()
+      case uhe: UnknownHostException =>
+        uhe.printStackTrace()
         None
     }
   }
