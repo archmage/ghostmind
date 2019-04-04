@@ -83,7 +83,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   val nameplate = new CharacterNameplate
 
   val status = new Label {
-    id = "CharacterBoxStatusText"
+    id = "ConnectivityStatusText"
     margin = Insets(8)
   }
 
@@ -140,12 +140,9 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           groupLabel.id = "Subtitle"
           groupLabel.text = groupString
         }
-        status.text = session.state.value.toString.dropRight(2).toUpperCase
-        session.state.value match {
-          case Offline() => status.style = "-fx-text-fill: #ff0000;"
-          case Connecting() => status.style = "-fx-text-fill: #ffff00;"
-          case Online() => status.style = "-fx-text-fill: #00ff00;"
-        }
+        status.text = session.state.value.toString.toUpperCase
+        status.style = session.state.value.style
+
         mailIcon.visible = session.newEvents > 0
         if(session.newEvents > 0) mailIcon.mailCount.text = session.newEvents.toString
         children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
@@ -159,13 +156,13 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
         onMouseClicked = event => {
           if(event.getButton == MouseButton.PRIMARY) session.state.value match {
-            case Offline() =>
+            case Offline =>
               new Thread(() => login(session.username, session.password)).start()
-            case Connecting() => ()
-            case Online() => startSession()
+            case Connecting => ()
+            case Online => startSession()
           }
           else if(event.getButton == MouseButton.SECONDARY) {
-            if(session.state.value == Online()) logout()
+            if(session.state.value == Online) logout()
           }
         }
       }
@@ -178,7 +175,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   }
 
   def addOnSessionStateChangeUpdate(): Unit = {
-    if(session.isDefined) session.get.state.onChange  { (_, _, _) => update() }
+    if(session.isDefined) session.get.state.onChange  { (_, _, _) => Platform.runLater(() => update()) }
   }
 
   def login(username: String, password: String): Unit = {
@@ -194,7 +191,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   }
 
   def loginComplete(): Unit = {
-    session.get.state.value = Online()
+    session.get.state.value = Online
   }
 
   def startSession(): Unit = {
@@ -205,7 +202,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   def logout(): Unit = {
     session.get.resetBrowser()
     StatusBar.status = s"""logged out as "${session.get.username}""""
-    session.get.state.value = Offline()
+    session.get.state.value = Offline
   }
 
   addOnSessionStateChangeUpdate()

@@ -16,6 +16,9 @@ object CharacterSession {
   val dateTimeFormatter = Constants.dateTimeFormatter
 }
 
+/**
+  * case class to represent a character session's state
+  */
 case class CharacterSession(
   username: String,
   password: String,
@@ -25,7 +28,7 @@ case class CharacterSession(
   var environment: Option[String] = None
 
   var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
-  val state: ObjectProperty[SessionState] = ObjectProperty(Offline())
+  val state: ObjectProperty[ConnectivityState] = ObjectProperty(Offline)
 
   var contacts: Option[List[Contact]] = None
   var skills: Option[List[String]] = None
@@ -136,7 +139,7 @@ case class CharacterSession(
 
 case class CharacterAttributes(
   id: Int,
-  hp: Int, // make you optional, friendo
+  hp: Int, // TODO make you optional, friendo
   ap: Int,
   level: Int,
   characterClass: String,
@@ -145,12 +148,9 @@ case class CharacterAttributes(
   group: String) {
 }
 
-sealed trait SessionState
-// TODO make these case objects and drop the parenthesess
-case class Offline() extends SessionState
-case class Connecting() extends SessionState
-case class Online() extends SessionState
-
+/**
+  * persistent version of CharacterSession
+  */
 case class PersistentSession(
   username: String,
   password: Array[Byte],

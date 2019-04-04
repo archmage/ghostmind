@@ -35,11 +35,11 @@ class MapGridView(
   var cells = ListBuffer[MapGridCell]()
 
   // the index (0-99) of the last cell that was hovered
-  var lastHoveredCell: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
+  var lastHoveredCell: ObjectProperty[Option[Int]] = ObjectProperty(None)
   // the index (0-99) of the currently selected cell
-  var selectedCell: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
+  var selectedCell: ObjectProperty[Option[Int]] = ObjectProperty(None)
   // the datasources index of the "default" datasource
-  var defaultSource: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
+  var defaultSource: ObjectProperty[Option[Int]] = ObjectProperty(None)
 
   // helpers!
   def lastHoveredDataSourceIndex: Option[Int] = {

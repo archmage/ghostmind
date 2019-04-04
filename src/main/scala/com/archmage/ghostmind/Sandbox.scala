@@ -1,14 +1,15 @@
 package com.archmage.ghostmind
 
-import com.archmage.ghostmind.model.{Block, Suburb, UrbanDeadModel}
+import com.archmage.ghostmind.model.UrbanDeadModel
+import com.archmage.ghostmind.view.StatusBar
 
 object Sandbox extends App {
-  Suburb.loadDangerMap()
+  println(UrbanDeadModel.loadCharacters())
+  println(UrbanDeadModel.sessions)
 
-  println(Block.blocks(5563))
+  StatusBar.status.onChange((newValue, _, _) => println(newValue))
 
-//  Block.blocks.sortBy(block => block.name.length).slice(0, 10).foreach { block =>
-//    println(s"${block.name} (${block.name.length}) [${block.x}, ${block.y}]")
-//  }
-//  println(Block.blocks.count(block => block.name.contains(",")))
+  UrbanDeadModel.sessions.flatten.headOption.map {
+    head => UrbanDeadModel.loginExistingSession(head, UrbanDeadModel.sessions.indexOf(Some(head)))
+  }
 }

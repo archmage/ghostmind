@@ -116,7 +116,7 @@
 #WhiteText {
     -fx-text-fill: -white-text;
 }
-#CharacterBoxStatusText {
+#ConnectivityStatusText {
     -fx-font-weight: bold;
 }
 #MailCount {

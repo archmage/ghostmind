@@ -1,18 +1,19 @@
 package com.archmage.ghostmind.view
 
+import com.archmage.ghostmind.model.{Connecting, ConnectivityState}
 import scalafx.application.Platform
-import scalafx.beans.property.StringProperty
+import scalafx.beans.property.{ObjectProperty, StringProperty}
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.{ContentDisplay, Label}
+import scalafx.scene.control.Label
 import scalafx.scene.layout._
-import scalafx.scene.paint.Color
 
 object StatusBar {
-  var status: StringProperty = new StringProperty("a ghost approaches the terminal")
+  var status: StringProperty = StringProperty("a ghost approaches the terminal")
+  var connectivity: ObjectProperty[ConnectivityState] = ObjectProperty(Connecting)
 
-  def status_=(status: String): Unit = {
-    Platform.runLater(() => StatusBar.status.value = status)
-  }
+  def status_=(status: String): Unit = StatusBar.status.value = status
+
+  def connectivity_=(connectivity: ConnectivityState): Unit = StatusBar.connectivity.value = connectivity
 }
 
 class StatusBar extends StackPane {
@@ -21,17 +22,24 @@ class StatusBar extends StackPane {
   alignment = Pos.CenterRight
   padding = Insets(5)
 
-  val label = new Label {
+  val statusLabel = new Label {
     id = "WhiteText"
-    text <== StatusBar.status
-    style = "-fx-background-color: blue"
+    alignment = Pos.Center
+    // explicitly not binding this because it breaks when multithreading
+    // text <== StatusBar.status
+
+    // instead... have THIS CLASS be where UI async shit lives
+    StatusBar.status.onChange((newValue, _, _) => Platform.runLater(() => text = newValue.value))
   }
 
+  // needs to be separate due to scope limitations
+  statusLabel.prefWidth <== width
+
   val connectivityLabel = new Label {
-    id = "CharacterBoxStatusText" // TODO refactor this
+    id = "ConnectivityStatusText"
     style = "-fx-text-fill: #ff0000;"
     text = "OFFLINE"
   }
 
-  children = List(label, connectivityLabel)
+  children = List(statusLabel, connectivityLabel)
 }

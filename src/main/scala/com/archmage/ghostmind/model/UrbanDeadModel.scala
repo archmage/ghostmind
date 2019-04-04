@@ -17,7 +17,10 @@ import scalafx.collections.ObservableBuffer
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
-// contains plumbing - be warned
+/**
+  * the big bad model that powers this thing
+  * beware: contains plumbing™
+  */
 object UrbanDeadModel {
   implicit val formats = DefaultFormats
 
@@ -31,12 +34,13 @@ object UrbanDeadModel {
 
   var sessions: ListBuffer[Option[CharacterSession]] = ListBuffer.fill(3)(None)
   var activeSession: Option[CharacterSession] = None
-  val charactersFile = "characters.json"
 
+  val charactersFile = "characters.json"
   val characterDirectory = "characters"
 
   val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
 
+  /** load CharacterSession data from file */
   def loadCharacters(): Option[ListBuffer[Option[CharacterSession]]] = {
     val file = new File(charactersFile)
     if(!file.exists()) return None
@@ -349,11 +353,10 @@ object UrbanDeadModel {
   }
 
   def loginExistingSession(session: CharacterSession, index: Int): Boolean = {
-    if(session.state.value != Offline()) return true // already in progress / done!
+    if(session.state.value != Offline) return true // already in progress / done!
 
-    Platform.runLater(() => {
-      session.state.value = Connecting()
-    })
+    session.state.value = Connecting
+
     StatusBar.status = s"""logging in as "${session.username}"..."""
     try {
       val contactsResponse = session.getRequest(s"$baseUrl/${
@@ -385,9 +388,7 @@ object UrbanDeadModel {
       saveEvents(session)
       saveCharacters()
 
-      Platform.runLater(() => {
-        session.state.value = Online()
-      })
+      session.state.value = Online
       StatusBar.status = s"""logged in as "${session.username}""""
       true
     }
