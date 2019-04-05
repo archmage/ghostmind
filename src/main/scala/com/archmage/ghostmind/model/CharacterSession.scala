@@ -112,7 +112,7 @@ case class CharacterSession(
   def apCalculated(): Int = {
     if(attributes.isEmpty) CharacterSession.maxAp
     else {
-      // something in here is wrong, sadly
+      // TODO something in here is wrong, sadly
       val now = LocalDateTime.now().atZone(ZoneId.systemDefault())
       val apRecoveredLastHit = LocalDateTime.MIN.until(lastHit, ChronoUnit.MINUTES) / 30
       val apRecoveredNow = LocalDateTime.MIN.until(now, ChronoUnit.MINUTES) / 30
@@ -144,7 +144,7 @@ case class CharacterSession(
 
 case class CharacterAttributes(
   id: Int,
-  hp: Option[Int], // TODO make you optional, friendo
+  hp: Option[Int],
   ap: Int,
   level: Int,
   characterClass: String,
