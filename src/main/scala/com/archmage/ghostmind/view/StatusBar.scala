@@ -14,6 +14,8 @@ object StatusBar {
   def status_=(status: String): Unit = StatusBar.status.value = status
 
   def connectivity_=(connectivity: ConnectivityState): Unit = StatusBar.connectivity.value = connectivity
+
+  status.onChange((newValue, _, _) => println(newValue))
 }
 
 class StatusBar extends StackPane {
@@ -28,7 +30,7 @@ class StatusBar extends StackPane {
     // explicitly not binding this because it breaks when multithreading
     // text <== StatusBar.status
 
-    // instead... have THIS CLASS be where UI async shit lives
+    // instead... use onChange to fire Platform.runLater, so as to guarantee UI changes happen on the UI thread
     StatusBar.status.onChange((newValue, _, _) => Platform.runLater(() => text = newValue.value))
   }
 

@@ -1,6 +1,6 @@
 package com.archmage.ghostmind.model
 
-import java.rmi.UnknownHostException
+import java.net.UnknownHostException
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}

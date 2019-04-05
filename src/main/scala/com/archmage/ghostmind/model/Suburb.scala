@@ -1,7 +1,7 @@
 package com.archmage.ghostmind.model
 
 import java.io.File
-import java.rmi.UnknownHostException
+import java.net.UnknownHostException
 
 import com.archmage.ghostmind.view.MapGridViewDataSource
 import net.ruippeixotog.scalascraper.dsl.DSL._
@@ -41,13 +41,11 @@ object Suburb {
   val dangerMapStyleRegex = """background:#([0-9A-F]{3})""".r.unanchored
 
   def loadDangerMap(): Option[Exception] = {
-    val wikiSuburbResponse: Document = try {
-       Constants.browser.get("http://wiki.urbandead.com/index.php/Suburb")
+    val wikiSuburbResponse = try {
+      Constants.browser.get("http://wiki.urbandead.com/index.php/Suburb")
     }
     catch {
-      case uhe: UnknownHostException =>
-        uhe.printStackTrace()
-        return Some(uhe)
+      case uhe: UnknownHostException => return Some(uhe)
     }
 
     val table = (wikiSuburbResponse >> elementList("table"))(1) // bad but whatever

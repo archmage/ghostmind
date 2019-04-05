@@ -5,9 +5,9 @@ import scalafx.application.Platform
 import scalafx.geometry.Pos
 import scalafx.scene.control.ProgressIndicator
 import scalafx.scene.layout._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class MainBorderPane extends BorderPane {
@@ -47,7 +47,7 @@ class MainBorderPane extends BorderPane {
       Suburb.suburbs
 
       StatusBar.status = "querying danger map..."
-      Suburb.loadDangerMap() // TODO debug this blocking the rest of the load
+      Suburb.loadDangerMap()
 
       // load blocks
       StatusBar.status = "loading block data..."
