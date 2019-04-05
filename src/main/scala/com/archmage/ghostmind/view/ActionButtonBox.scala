@@ -6,7 +6,7 @@ import net.ruippeixotog.scalascraper.model.Document
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Button
-import scalafx.scene.layout.{FlowPane, Priority}
+import scalafx.scene.layout.{FlowPane, HBox, Priority, VBox}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -45,11 +45,21 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
     (-1, 1, "SW"), (0, 1, "S"), (1, 1, "SE")
   ).map { data => new Button {
     text = data._3
+    prefWidth = 45
+    focusTraversable = false
     onAction = _ => move(data._1, data._2)
     // disable = (if data coords + session.coords is outside bounds!)
   }}
 
   movementButtons(4).disable = true
+
+  val movementButtonsBox = new VBox {
+    children = List (
+      new HBox { children = movementButtons.slice(0, 3) },
+      new HBox { children = movementButtons.slice(3, 6) },
+      new HBox { children = movementButtons.slice(6, 9) },
+    )
+  }
 
   def performAction(startMessage: String, endMessage: String, action: () => Option[Document]): Unit = {
     StatusBar.status = startMessage
@@ -82,8 +92,5 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
       () => UrbanDeadModel.moveAction(session, x, y))
   }
 
-  children = List(searchButton, speechField, speechSubmitButton) :::
-    movementButtons
-
-  // TODO make this way prettier
+  children = List(searchButton, speechField, speechSubmitButton, movementButtonsBox)
 }

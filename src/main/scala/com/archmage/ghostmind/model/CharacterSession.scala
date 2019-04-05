@@ -25,6 +25,8 @@ case class CharacterSession(
   password: String,
   var attributes: Option[CharacterAttributes] = None) {
 
+  var persist: Boolean = false
+
   var position: Option[Int] = None
   var environment: Option[String] = None
 
@@ -50,7 +52,8 @@ case class CharacterSession(
   }
 
   def getRequest(url: String): Option[Document] = {
-    println(url)
+    // this is Dangerouse
+//    println(url)
     try {
       Some(browser.get(url))
     }
@@ -76,9 +79,9 @@ case class CharacterSession(
     browser = new JsoupBrowser(UrbanDeadModel.useragent)
   }
 
-  def hpValue(): Int = {
+  def hpValue(): Option[Int] = {
     // eventually, have this be aware of Bodybuilding
-    if(attributes.isDefined) attributes.get.hp else hpMax()
+    if(attributes.isDefined) attributes.get.hp else None
   }
 
   def hpMax(): Int = {
@@ -95,11 +98,11 @@ case class CharacterSession(
   }
 
   def hpDouble(): Double = {
-    Math.min(hpValue() / hpMax().doubleValue(), 1)
+    Math.min(hpValue().getOrElse(hpMax()) / hpMax().doubleValue(), 1)
   }
 
   def hpString(): String = {
-    s"HP: ${if(attributes.isEmpty) "???" else hpValue()}/${hpMax()}"
+    s"HP: ${if(attributes.isEmpty || attributes.get.hp.isEmpty) "???" else hpValue().get}/${hpMax()}"
   }
 
   def apString(): String = {
@@ -141,7 +144,7 @@ case class CharacterSession(
 
 case class CharacterAttributes(
   id: Int,
-  hp: Int, // TODO make you optional, friendo
+  hp: Option[Int], // TODO make you optional, friendo
   ap: Int,
   level: Int,
   characterClass: String,

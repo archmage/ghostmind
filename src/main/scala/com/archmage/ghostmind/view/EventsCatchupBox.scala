@@ -29,7 +29,7 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox with Updateab
       if(!compact) children = heading
     }
     else {
-      heading.text = "since your last turn:"
+      heading.text = if(session.newEvents != 0) "since your last turn:" else "events"
       var events: ListBuffer[Node] = session.events.get.reverse.map { event => {
         val icon = new ImageView {
           image = event.eventType.image

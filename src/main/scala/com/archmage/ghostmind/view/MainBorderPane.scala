@@ -52,6 +52,9 @@ class MainBorderPane extends BorderPane {
       // load blocks
       StatusBar.status = "loading block data..."
       Block.blocks
+
+      StatusBar.status = "querying the server..."
+      UrbanDeadModel.checkUDServer()
     } map { _ =>
       StatusBar.status = "loading character info..."
       UrbanDeadModel.loadCharacters()

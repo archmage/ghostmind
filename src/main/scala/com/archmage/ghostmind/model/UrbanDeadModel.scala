@@ -1,8 +1,8 @@
 package com.archmage.ghostmind.model
 
 import java.io.{File, FileOutputStream, PrintWriter}
+import java.net.UnknownHostException
 import java.time._
-import java.time.temporal.ChronoUnit
 
 import com.archmage.ghostmind.view.StatusBar
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
@@ -11,7 +11,6 @@ import net.ruippeixotog.scalascraper.model.{Document, Element}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
-import scalafx.application.Platform
 import scalafx.collections.ObservableBuffer
 
 import scala.collection.mutable.ListBuffer
@@ -25,12 +24,16 @@ object UrbanDeadModel {
   implicit val formats = DefaultFormats
 
   val useragent = "ghostmind"
+
   val baseUrl = "http://urbandead.com"
   val contactsUrl = "contacts.cgi?username=%1$s&password=%2$s"
   val skillsUrl = "skills.cgi"
   val mapUrl = "map.cgi"
   val profileUrl = "profile.cgi?id="
   val searchUrl = "map.cgi?search"
+
+  val wikiBaseUrl = "http://wiki.urbandead.com/index.php"
+  val wikiSuburbUrl = "Suburb"
 
   var sessions: ListBuffer[Option[CharacterSession]] = ListBuffer.fill(3)(None)
   var activeSession: Option[CharacterSession] = None
@@ -39,6 +42,26 @@ object UrbanDeadModel {
   val characterDirectory = "characters"
 
   val contactsBuffer: ObservableBuffer[Contact] = new ObservableBuffer[Contact]
+
+  def checkUDServer(): Unit = {
+    // check UD server to see if it's reachable
+    val serverCheck = try {
+      Some(Constants.browser.get(baseUrl))
+    }
+    catch {
+      case uhe: UnknownHostException =>
+        uhe.printStackTrace()
+        None
+    }
+    if(serverCheck.isDefined) {
+      // UD server is accessible!
+      StatusBar.udConnectivity.value = Online
+    }
+    else {
+      // UD server is inaccessible :(
+      StatusBar.udConnectivity.value = Offline
+    }
+  }
 
   /** load CharacterSession data from file */
   def loadCharacters(): Option[ListBuffer[Option[CharacterSession]]] = {
@@ -124,7 +147,8 @@ object UrbanDeadModel {
   def loginExistingSession(session: CharacterSession, index: Int): LoginOutcome = {
     if(session.state.value != Offline) return AlreadyLoggedIn // already in progress / done!
 
-    session.state.value = Authenticating
+    session.state.value = Connecting
+    if(StatusBar.udConnectivity.value == Offline) StatusBar.udConnectivity.value = Connecting
 
     StatusBar.status = s"""logging in as "${session.username}"..."""
 
@@ -137,8 +161,11 @@ object UrbanDeadModel {
       // failed to hit the server, return
       StatusBar.status = s"""failed to reach the server; check your connectivity"""
       session.state.value = Offline
+      StatusBar.udConnectivity = Offline
       return ServerInaccessible
     }
+
+    StatusBar.udConnectivity = Online
 
     val contactsFormOption: Option[Element] = contactsResponse.get >?> element("form")
     if(contactsFormOption.isEmpty) {
@@ -147,6 +174,8 @@ object UrbanDeadModel {
       session.state.value = Offline
       return BadCredentials
     }
+
+
 
     // now logged in
     sessions(index) = Some(session)
@@ -279,10 +308,7 @@ object UrbanDeadModel {
   def parseStatusBlock(block: Element, session: CharacterSession): Option[CharacterAttributes] = {
     val boldElements = block >> elementList("b")
 
-    // i don't like defaulting to this without some sort of UI indication that this has happened
-    // maybe make attributes.hp optional and show ??? when None
-    // probably do this later, it's an edge case
-    var hp = 50
+    var hp: Option[Int] = session.hpValue()
 
     var xp = 0
     var ap = 0
@@ -291,7 +317,7 @@ object UrbanDeadModel {
     }
     else {
       val numbers = boldElements.slice(boldElements.size - 3, boldElements.size)
-      hp = numbers.head.text.toInt
+      hp = Some(numbers.head.text.toInt)
       xp = numbers(1).text.toInt
       ap = numbers(2).text.toInt
     }
@@ -300,6 +326,7 @@ object UrbanDeadModel {
     val idLink = (block >> element("a")).attr("href")
     val id = idLink.substring(profileUrl.length).toInt
 
+    // TODO examine whether this needs to happen literally every single time
     val profileResponse = session.getRequest(s"$baseUrl/$profileUrl$id")
 
     if(profileResponse.isEmpty) {
@@ -321,7 +348,7 @@ object UrbanDeadModel {
     // TODO implement this later
 //    val description = (doc >> element("td .gp")).text
     val group = data(2)(1).text
-    CharacterAttributes(-1, -1, -1, data(1).head.text.toInt, data.head.head.text, -1, "", group)
+    CharacterAttributes(-1, None, -1, data(1).head.text.toInt, data.head.head.text, -1, "", group)
   }
 
   def parseEnvironmentBlock(block: Element, session: CharacterSession): Unit = {

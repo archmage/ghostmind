@@ -119,6 +119,10 @@
 #ConnectivityStatusText {
     -fx-font-weight: bold;
 }
+#ConnectivityIndicator {
+    -fx-font-weight: bold;
+    -fx-underline: false;
+}
 #MailCount {
     -fx-font-size: 1.1em;
     -fx-text-fill: -white;

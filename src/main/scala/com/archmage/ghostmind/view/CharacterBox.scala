@@ -144,7 +144,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         else {
           // this is awful, but whatever
           id = session.state.value match {
-            case Authenticating => id.value
+            case Connecting => id.value
             case _ => "SolidGreyBorder"
           }
           groupLabel.id = "Subtitle"
@@ -157,7 +157,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         if(session.newEvents > 0) mailIcon.mailCount.text = session.newEvents.toString
 
         // to allow the login box to take some time
-        if(session.state.value != Authenticating) {
+        if(session.state.value != Connecting) {
           children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
         }
 
@@ -172,7 +172,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           if(event.getButton == MouseButton.PRIMARY) session.state.value match {
             case Offline =>
               new Thread(() => login(session.username, session.password)).start()
-            case Authenticating => ()
+            case Connecting => ()
             case Retrieving => ()
             case Online => startSession()
           }

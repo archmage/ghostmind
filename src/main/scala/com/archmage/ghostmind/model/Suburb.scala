@@ -3,7 +3,7 @@ package com.archmage.ghostmind.model
 import java.io.File
 import java.net.UnknownHostException
 
-import com.archmage.ghostmind.view.MapGridViewDataSource
+import com.archmage.ghostmind.view.{MapGridViewDataSource, StatusBar}
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.Document
 import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList
@@ -42,11 +42,15 @@ object Suburb {
 
   def loadDangerMap(): Option[Exception] = {
     val wikiSuburbResponse = try {
-      Constants.browser.get("http://wiki.urbandead.com/index.php/Suburb")
+      Constants.browser.get(s"${UrbanDeadModel.wikiBaseUrl}/${UrbanDeadModel.wikiSuburbUrl}")
     }
     catch {
-      case uhe: UnknownHostException => return Some(uhe)
+      case uhe: UnknownHostException =>
+        StatusBar.wikiConnectivity.value = Offline
+        return Some(uhe)
     }
+
+    StatusBar.wikiConnectivity.value = Online
 
     val table = (wikiSuburbResponse >> elementList("table"))(1) // bad but whatever
     val cells = table >> elementList("td")
