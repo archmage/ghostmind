@@ -1,6 +1,6 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.{Connecting, ConnectivityState}
+import com.archmage.ghostmind.model.{Authenticating, ConnectivityState}
 import scalafx.application.Platform
 import scalafx.beans.property.{ObjectProperty, StringProperty}
 import scalafx.geometry.{Insets, Pos}
@@ -9,7 +9,7 @@ import scalafx.scene.layout._
 
 object StatusBar {
   var status: StringProperty = StringProperty("a ghost approaches the terminal")
-  var connectivity: ObjectProperty[ConnectivityState] = ObjectProperty(Connecting)
+  var connectivity: ObjectProperty[ConnectivityState] = ObjectProperty(Authenticating)
 
   def status_=(status: String): Unit = StatusBar.status.value = status
 

@@ -47,7 +47,7 @@ class MainBorderPane extends BorderPane {
       Suburb.suburbs
 
       StatusBar.status = "querying danger map..."
-      Suburb.loadDangerMap()
+      Suburb.loadDangerMap() // TODO debug this blocking the rest of the load
 
       // load blocks
       StatusBar.status = "loading block data..."
@@ -61,7 +61,11 @@ class MainBorderPane extends BorderPane {
       charactersPane.characters ++= characters.getOrElse(ListBuffer.fill(3)(None)).zipWithIndex.map { session =>
         new CharacterBox(session._1, session._2)
       }
-      for(i <- charactersPane.children.size() + 1 to 3) charactersPane.characters += new CharacterBox(None, i)
+
+      for(i <- charactersPane.characters.size() until 3) {
+        charactersPane.characters += new CharacterBox(None, i)
+        UrbanDeadModel.sessions += None
+      }
 
       StatusBar.status = "finalising..."
       UIModel.state.onChange { (_, _, _) => modelStateChanged()}

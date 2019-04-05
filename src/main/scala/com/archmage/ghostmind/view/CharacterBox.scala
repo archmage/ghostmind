@@ -17,6 +17,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   prefHeight = 252
 
   var deleteConfirm = false
+  var addCharacterClicked = false
 
   onMouseExited = _ => {
     if(deleteConfirm) {
@@ -36,7 +37,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     text = "add a character"
     margin = Insets(8, 0, 0, 0)
   }
-  var loginBox = new LoginVBox(login, loginComplete)
+  var loginBox = new LoginVBox(login, onComplete)
 
   val avatar = new ImageView {
     fitWidth = 90
@@ -56,7 +57,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
         avatar.image.value = null
         session = None
-        loginBox = new LoginVBox(login, loginComplete)
+        loginBox = new LoginVBox(login, onComplete)
 
         deleteConfirm = false
       }
@@ -102,13 +103,23 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     bar.prefWidth = Integer.MAX_VALUE
   }
 
+  val addCharacterElements = List(plusIcon, addCharacterLabel)
+
   def update(): Unit = {
     Platform.runLater(() => {
       if(session.isEmpty) {
         id = "DottedGreyBorder"
-        children = List(plusIcon, addCharacterLabel)
+        if(addCharacterClicked) children = loginBox
+        else children = addCharacterElements
         onMouseClicked = event => {
-          if(event.getButton == MouseButton.PRIMARY) children = loginBox
+          if(event.getButton == MouseButton.PRIMARY) addCharacterClicked = true
+          else if(event.getButton == MouseButton.SECONDARY) {
+            addCharacterClicked = false
+            loginBox.usernameField.text = ""
+            loginBox.passwordField.text = ""
+          }
+          if(addCharacterClicked) children = loginBox
+          else children = addCharacterElements
         }
       }
 
@@ -116,14 +127,9 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         val session = this.session.get
 
         if (avatar.image.value == null) {
-          try {
-            avatar.image = new Image(getClass.getResourceAsStream(s"assets/${session.username}.png"))
-          }
-          catch {
-            case e: Exception =>
-              e.printStackTrace()
-              avatar.image = AssetManager.humanImage
-          }
+          val stream = getClass.getResourceAsStream(s"assets/${session.username}.png")
+          if(stream != null) avatar.image = new Image(stream)
+          else avatar.image = AssetManager.humanImage
         }
 
         val groupString = if(session.attributes.isEmpty) "[unknown group]"
@@ -136,7 +142,11 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           groupLabel.text = "click again to delete"
         }
         else {
-          id = "SolidGreyBorder"
+          // this is awful, but whatever
+          id = session.state.value match {
+            case Authenticating => id.value
+            case _ => "SolidGreyBorder"
+          }
           groupLabel.id = "Subtitle"
           groupLabel.text = groupString
         }
@@ -145,7 +155,11 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
         mailIcon.visible = session.newEvents > 0
         if(session.newEvents > 0) mailIcon.mailCount.text = session.newEvents.toString
-        children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
+
+        // to allow the login box to take some time
+        if(session.state.value != Authenticating) {
+          children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
+        }
 
         hpBar.text.text = session.hpString()
         hpBar.bar.progress = session.hpDouble()
@@ -158,7 +172,8 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           if(event.getButton == MouseButton.PRIMARY) session.state.value match {
             case Offline =>
               new Thread(() => login(session.username, session.password)).start()
-            case Connecting => ()
+            case Authenticating => ()
+            case Retrieving => ()
             case Online => startSession()
           }
           else if(event.getButton == MouseButton.SECONDARY) {
@@ -175,23 +190,32 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   }
 
   def addOnSessionStateChangeUpdate(): Unit = {
-    if(session.isDefined) session.get.state.onChange  { (_, _, _) => Platform.runLater(() => update()) }
+    if(session.isDefined) session.get.state.onChange { (_, _, _) => Platform.runLater(() => update()) }
   }
 
-  def login(username: String, password: String): Unit = {
+  def login(username: String, password: String): LoginOutcome = {
     if(session.isEmpty) {
       session = Some(CharacterSession(username, password))
       addOnSessionStateChangeUpdate()
       update()
     }
-    val result = UrbanDeadModel.loginExistingSession(session.get, index)
-    if(!result) {
-      Platform.runLater(() => children = loginBox)
-    }
+    UrbanDeadModel.loginExistingSession(session.get, index)
   }
 
-  def loginComplete(): Unit = {
-    session.get.state.value = Online
+  def onComplete(outcome: LoginOutcome): Unit = {
+    outcome match {
+      case Success =>
+        loginBox.loginSuccess()
+      case AlreadyLoggedIn => ()
+      case ServerInaccessible =>
+        session.get.state.value = Offline
+        loginBox.loginFailure()
+      case BadCredentials =>
+        session = None
+        avatar.image = null
+        loginBox.loginFailure()
+        Platform.runLater(() => children = loginBox)
+    }
   }
 
   def startSession(): Unit = {

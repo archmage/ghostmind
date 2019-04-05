@@ -1,12 +1,13 @@
 package com.archmage.ghostmind.view
 
+import com.archmage.ghostmind.model.{LoginOutcome, Success}
 import javafx.event.{ActionEvent, EventHandler}
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.{Button, Label, PasswordField, ProgressIndicator}
 import scalafx.scene.layout.VBox
 
-class LoginVBox(onSubmit: (String, String) => Unit, completion: () => Unit) extends VBox {
+class LoginVBox(onSubmit: (String, String) => LoginOutcome, onComplete: LoginOutcome => Unit) extends VBox {
 
   alignment = Pos.Center
   padding = Insets(10)
@@ -32,9 +33,6 @@ class LoginVBox(onSubmit: (String, String) => Unit, completion: () => Unit) exte
     text = "login"
     onAction = loginClosure
   }
-  val loggedInAsLabel = new Label {
-    id = "WhiteText"
-  }
   val indicator = new ProgressIndicator()
 
   children = List(usernameField, passwordField, loginLogoutButton)
@@ -47,17 +45,19 @@ class LoginVBox(onSubmit: (String, String) => Unit, completion: () => Unit) exte
 
     children = indicator
 
-    new Thread(() => {
-      onSubmit.apply(username, password)
+    new Thread(() => { onComplete(onSubmit(username, password)) }).start()
+  }
 
-      Platform.runLater {
-        loggedInAsLabel.text = s"logged in as $username"
-        loginLogoutButton.text = "logout"
-        loginLogoutButton.onAction = logoutClosure
-        children = List(loggedInAsLabel, loginLogoutButton)
-        completion.apply()
-      }
-    }).start()
+  def loginSuccess(): Unit = {
+    Platform.runLater(() => {
+      loginLogoutButton.text = "logout"
+      loginLogoutButton.onAction = logoutClosure
+      children = List(usernameField, passwordField, loginLogoutButton)
+    })
+  }
+
+  def loginFailure(): Unit = {
+    Platform.runLater(() => children = List(usernameField, passwordField, loginLogoutButton))
   }
 
   def logout(): Unit = {

@@ -121,6 +121,69 @@ object UrbanDeadModel {
     println("done saving!")
   }
 
+  def loginExistingSession(session: CharacterSession, index: Int): LoginOutcome = {
+    if(session.state.value != Offline) return AlreadyLoggedIn // already in progress / done!
+
+    session.state.value = Authenticating
+
+    StatusBar.status = s"""logging in as "${session.username}"..."""
+
+    val contactsResponse = session.getRequest(s"$baseUrl/${
+      contactsUrl.format(
+        session.username.replaceAll(" ", "%20"),
+        session.password.replaceAll(" ", "%20"))}")
+
+    if(contactsResponse.isEmpty) {
+      // failed to hit the server, return
+      StatusBar.status = s"""failed to reach the server; check your connectivity"""
+      session.state.value = Offline
+      return ServerInaccessible
+    }
+
+    val contactsFormOption: Option[Element] = contactsResponse.get >?> element("form")
+    if(contactsFormOption.isEmpty) {
+      // failed to log in; return
+      StatusBar.status = s"""failed to login as "${session.username}"; username or password were incorrect"""
+      session.state.value = Offline
+      return BadCredentials
+    }
+
+    // now logged in
+    sessions(index) = Some(session)
+    session.state.value = Retrieving
+
+    StatusBar.status = "loading contacts..."
+    session.contacts = Some(parseContactList(contactsResponse.get, session))
+
+    // return to this later
+    //      StatusBar.status = "loading skills..."
+    //      val skillsDoc = session.getRequest(s"$baseUrl/$skillsUrl")
+
+    StatusBar.status = "loading events log..."
+    loadEvents(session)
+
+    StatusBar.status = "checking map.cgi..."
+    val mapCgiResponse = pollMapCgi(session)
+    if(mapCgiResponse.isEmpty) {
+      // failed to hit map.cgi? odd
+      StatusBar.status = s"""map.cgi was inaccessible; check your connectivity"""
+      session.state.value = Offline
+      return ServerInaccessible
+    }
+
+    val data = MapData.parseResponse(mapCgiResponse.get)
+    parseMapCgi(mapCgiResponse.get, session)
+
+    StatusBar.status = "saving character data..."
+    saveEvents(session)
+    saveCharacters()
+
+    session.state.value = Online
+    StatusBar.status = s"""logged in as "${session.username}""""
+    Success
+  }
+
+
   def parseContactList(doc: Document, session: CharacterSession): List[Contact] = {
     val contactRows = (doc >> elementList("tr")).tail.dropRight(1)
 
@@ -350,57 +413,6 @@ object UrbanDeadModel {
       "target" -> "target-id-this-is-intentionally-broken"
     ))
     println(reviveAttempt.body)
-  }
-
-  def loginExistingSession(session: CharacterSession, index: Int): Boolean = {
-    if(session.state.value != Offline) return true // already in progress / done!
-
-    session.state.value = Connecting
-
-    StatusBar.status = s"""logging in as "${session.username}"..."""
-
-    val contactsResponse = session.getRequest(s"$baseUrl/${
-      contactsUrl.format(session.username.replaceAll(" ", "%20"), session.password)}")
-
-    val contactsFormOption = contactsResponse >?> element("form")
-    if(contactsFormOption.isEmpty) {
-      // failed to log in; return
-      StatusBar.status = s"""failed to login as "${session.username}"; username or password were incorrect."""
-      session.state.value = Offline
-      return false
-    }
-
-    // now logged in
-
-    // do some database dumping here?
-    sessions(index) = Some(session)
-
-    StatusBar.status = "loading contacts..."
-    session.contacts = Some(parseContactList(contactsResponse.get, session))
-
-    // return to this later
-//      StatusBar.status = "loading skills..."
-//      val skillsDoc = session.getRequest(s"$baseUrl/$skillsUrl")
-
-    StatusBar.status = "loading events log..."
-    loadEvents(session)
-
-    StatusBar.status = "checking map.cgi..."
-    val mapCgiResponse = pollMapCgi(session)
-    if(mapCgiResponse.isDefined) {
-      val data = MapData.parseResponse(mapCgiResponse.get)
-      parseMapCgi(mapCgiResponse.get, session)
-    }
-
-    StatusBar.status = "saving character data..."
-    saveEvents(session)
-    saveCharacters()
-
-    session.state.value = Online
-    StatusBar.status = s"""logged in as "${session.username}""""
-    true
-
-    // TODO improve error handling of failed logins
   }
 
   def getNextRollover: ZonedDateTime = {
