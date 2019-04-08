@@ -23,30 +23,30 @@ object CharacterSession {
 case class CharacterSession(
   username: String,
   password: String,
-  var attributes: Option[CharacterAttributes] = None) {
+  var attributes: CharacterAttributes = CharacterAttributes()) {
 
-  var persist: Boolean = false
-
-  var position: Option[Int] = None
-  var environment: Option[String] = None
-
-  var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
-  val state: ObjectProperty[ConnectivityState] = ObjectProperty(Offline)
-
+  // stuff that will eventually be moved to attributes
+  var events: Option[ListBuffer[Event]] = None
   var contacts: Option[List[Contact]] = None
   var skills: Option[List[String]] = None
 
-  var events: Option[ListBuffer[Event]] = None
-  var newEvents: Int = 0
+  // stuff that should probably persist in some other way
+  // actually, won't this be replaced by MapData?
+  var environment: Option[String] = None
 
-  var hits: Int = CharacterSession.maxDailyHits
-  var lastHit: ZonedDateTime = LocalDateTime.MIN.atZone(ZoneId.systemDefault())
+  // non-persistent variables that are tied to the session's flow
+  var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
+  val state: ObjectProperty[ConnectivityState] = ObjectProperty(Offline)
+  var newEvents: Int = 0
+  var persist: Boolean = false // if this is true, don't make this session persist!
+
+  val eventsLogFilename: String = s"$username-log.json"
 
   def requestHit(): Boolean = {
-    if(hits <= 0) false
+    if(attributes.hits <= 0) false
     else {
-      hits -= 1
-      lastHit = LocalDateTime.now().atZone(ZoneId.systemDefault())
+      attributes.hits -= 1
+      attributes.lastHit = LocalDateTime.now().atZone(ZoneId.systemDefault())
       true
     }
   }
@@ -64,76 +64,60 @@ case class CharacterSession(
     }
   }
 
-  def hitsDouble(): Double = {
-    hits / CharacterSession.maxDailyHits.doubleValue()
+  def resetBrowser(): Unit = browser = new JsoupBrowser(UrbanDeadModel.useragent)
+
+  def encode(): PersistentSession = PersistentSession(username, password.getBytes, attributes,
+    Some(attributes.lastHit.format(CharacterSession.dateTimeFormatter)))
+}
+
+// a snapshot of the character's statistics
+case class CharacterAttributes(
+  var id: Option[Int] = None,
+  var hp: Option[Int] = None,
+  var ap: Option[Int] = None,
+  var level: Option[Int] = None,
+  var characterClass: Option[String] = None,
+  var xp: Option[Int] = None,
+  var description: Option[String] = None,
+  var group: Option[String] = None,
+  var position: Option[Int] = None,
+  var hits: Int = CharacterSession.maxDailyHits,
+  var lastHit: ZonedDateTime = LocalDateTime.MIN.atZone(ZoneId.systemDefault())) {
+
+  // eventually, have this be aware of Bodybuilding
+  def hpMax(): Int = 50
+
+  def hpString(): String = s"HP: ${hp.getOrElse("???")}/${hpMax()}"
+  def hpDouble(): Double = Math.min(hp.getOrElse(hpMax()) / hpMax().doubleValue(), 1)
+
+  /* TODO discern exactly which minute-intervals grant AP
+   * Steven Cooper from the RCC mentioned that it works more like a cooldown than a
+   * cadence-based income. You use AP, then (apparently) it starts a 30min timer on
+   * the server, after which you'll get allocated AP.
+   *
+   * Investigate this, and confirm its behaviour.
+   */
+  def apCalculated(): Option[Int] = {
+    if(ap.isEmpty) return None
+    val now = LocalDateTime.now().atZone(ZoneId.systemDefault())
+    val apRecoveredLastHit = LocalDateTime.MIN.until(lastHit, ChronoUnit.MINUTES) / 30
+    val apRecoveredNow = LocalDateTime.MIN.until(now, ChronoUnit.MINUTES) / 30
+    Some(Math.min(CharacterSession.maxAp, ap.get + (apRecoveredNow - apRecoveredLastHit).intValue()))
   }
 
-  def encode(): PersistentSession = {
-    PersistentSession(username, password.getBytes, attributes, hits,
-      Some(lastHit.format(CharacterSession.dateTimeFormatter)))
-  }
+  def apString(): String = s"AP: ${apCalculated().getOrElse("???")}/${CharacterSession.maxAp}"
+  def apDouble(): Double = Math.max(0, apCalculated().getOrElse(CharacterSession.maxAp)) / CharacterSession.maxAp.doubleValue()
 
-  def eventsLogFilename(): String = s"$username-log.json"
+  def hitsString(): String = s"Hits: $hits/${CharacterSession.maxDailyHits}"
+  def hitsDouble(): Double = hits / CharacterSession.maxDailyHits.doubleValue()
 
-  def resetBrowser(): Unit = {
-    browser = new JsoupBrowser(UrbanDeadModel.useragent)
-  }
-
-  def hpValue(): Option[Int] = {
-    // eventually, have this be aware of Bodybuilding
-    if(attributes.isDefined) attributes.get.hp else None
-  }
-
-  def hpMax(): Int = {
-    // eventually, have this be aware of Bodybuilding
-
-    /*
-    attributes.hp becomes optional
-    when parsing from map.cgi, if it's not there, defer to existing hp value
-    if _it's_ not there, return None
-    parse None as ??? for text and 100% (50 or 60 with Bodybuilding) for number things
-     */
-
-    50
-  }
-
-  def hpDouble(): Double = {
-    Math.min(hpValue().getOrElse(hpMax()) / hpMax().doubleValue(), 1)
-  }
-
-  def hpString(): String = {
-    s"HP: ${if(attributes.isEmpty || attributes.get.hp.isEmpty) "???" else hpValue().get}/${hpMax()}"
-  }
-
-  def apString(): String = {
-    s"AP: ${if(attributes.isEmpty) "???" else apCalculated()}/${CharacterSession.maxAp}"
-  }
-
-  def apCalculated(): Int = {
-    if(attributes.isEmpty) CharacterSession.maxAp
-    else {
-      // TODO something in here is wrong, sadly
-      val now = LocalDateTime.now().atZone(ZoneId.systemDefault())
-      val apRecoveredLastHit = LocalDateTime.MIN.until(lastHit, ChronoUnit.MINUTES) / 30
-      val apRecoveredNow = LocalDateTime.MIN.until(now, ChronoUnit.MINUTES) / 30
-      Math.min(CharacterSession.maxAp, attributes.get.ap + (apRecoveredNow - apRecoveredLastHit).intValue())
-    }
-  }
-
-  def apDouble(): Double = {
-    Math.max(0, apCalculated()) / CharacterSession.maxAp.doubleValue()
-  }
-
-  def hitsString(): String = {
-    s"Hits: $hits/${CharacterSession.maxDailyHits}"
-  }
-
-  def xpString(): String = {
-    s"${attributes.get.xp}xp"
-  }
+  def xpString(): String = {s"${xp.getOrElse("???")}xp"}
+  def xpDouble(): Double = Math.min(xp.getOrElse(0) / 100.0, 1)
 
   def xpStringLong(): String = {
-    s"${xpString()} (${attributes.get.xp / 75}/${attributes.get.xp / 100}/${attributes.get.xp / 150})"
+    s"${xpString()}${if(xp.isDefined) {
+      s" (${xp.get / 75}/${xp.get / 100}/${xp.get / 150})"
+    } else ""}"
   }
 
   def suburbIndex(): Option[Int] = {
@@ -142,36 +126,24 @@ case class CharacterSession(
   }
 }
 
-case class CharacterAttributes(
-  id: Int,
-  hp: Option[Int],
-  ap: Int,
-  level: Int,
-  characterClass: String,
-  xp: Int,
-  description: String,
-  group: String) {
-}
-
 /**
   * persistent version of CharacterSession
   */
 case class PersistentSession(
   username: String,
   password: Array[Byte],
-  attributes: Option[CharacterAttributes],
-  hits: Int,
+  attributes: CharacterAttributes,
   lastHit: Option[String]) {
 
   def decode(): CharacterSession = {
     val session = CharacterSession(username, new String(password), attributes)
-    session.hits = hits
+
     val lastHitValue = lastHit.getOrElse(LocalDateTime.MIN.format(DateTimeFormatter.ISO_DATE_TIME))
-    session.lastHit = LocalDateTime.parse(lastHitValue, CharacterSession.dateTimeFormatter).atZone(ZoneId.systemDefault())
+    session.attributes.lastHit = LocalDateTime.parse(lastHitValue, CharacterSession.dateTimeFormatter).atZone(ZoneId.systemDefault())
 
     // reset hits if rollover has happened
-    if(session.lastHit.until(UrbanDeadModel.getNextRollover, ChronoUnit.HOURS) >= 24) {
-      session.hits = CharacterSession.maxDailyHits
+    if(session.attributes.lastHit.until(UrbanDeadModel.getNextRollover, ChronoUnit.HOURS) >= 24) {
+      session.attributes.hits = CharacterSession.maxDailyHits
     }
 
     session

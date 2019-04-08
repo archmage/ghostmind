@@ -94,8 +94,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
       }
     }
 
-    suburbGrid.defaultSource.value = session.suburbIndex()
-    blockGrid.defaultSource.value = session.position
+    suburbGrid.defaultSource.value = session.attributes.suburbIndex()
+    blockGrid.defaultSource.value = session.attributes.position
 
     children = List(searchField, searchStatusLabel, suburbLabel, suburbGrid, blockLabelVBox, blockGrid,
       coordinatesLabel, coordinatesDeltaLabel)
@@ -150,28 +150,28 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
   // -- accessors for location data from the session --
 
   def getSessionSuburb: String = {
-    val suburbIndex = session.suburbIndex()
+    val suburbIndex = session.attributes.suburbIndex()
     if(suburbIndex.isDefined) Suburb.suburbs(suburbIndex.get).name
     else "Suburb Name"
   }
 
   def getSessionBlock: String = {
-    if(session.position.isDefined) Block.blocks(session.position.get).name
+    if(session.attributes.position.isDefined) Block.blocks(session.attributes.position.get).name
     else "Block Name"
   }
 
   def getSessionCoordinates: String = {
-    if(session.position.isDefined) {
-      val coordinates = blockGrid.dataSourcesCoordinatesFromIndex(session.position.get)
+    if(session.attributes.position.isDefined) {
+      val coordinates = blockGrid.dataSourcesCoordinatesFromIndex(session.attributes.position.get)
       s"[${coordinates._1}, ${coordinates._2}]"
     }
     else "[x, y]"
   }
 
   def getSessionCoordinatesDelta: String = {
-    if(session.position.isDefined && activeBlock.value.isDefined) {
-      val x = activeBlock.value.get % blockGrid.dataSourceWidth - session.position.get % blockGrid.dataSourceWidth
-      val y = activeBlock.value.get / blockGrid.dataSourceWidth - session.position.get / blockGrid.dataSourceWidth
+    if(session.attributes.position.isDefined && activeBlock.value.isDefined) {
+      val x = activeBlock.value.get % blockGrid.dataSourceWidth - session.attributes.position.get % blockGrid.dataSourceWidth
+      val y = activeBlock.value.get / blockGrid.dataSourceWidth - session.attributes.position.get / blockGrid.dataSourceWidth
       (x, y) match {
         case (0, 0) => "you are here"
         case _ =>
@@ -199,7 +199,7 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
       else if(blockGrid.singleMatch.isDefined) Block.blocks(blockGrid.singleMatch.get).getSuburbIndex
       else if(suburbGrid.selectedCell.value.isDefined) suburbGrid.selectedCell.value.get
       else if(suburbGrid.lastHoveredCell.value.isDefined) suburbGrid.lastHoveredCell.value.get
-      else if (session.suburbIndex().isDefined) session.suburbIndex().get
+      else if (session.attributes.suburbIndex().isDefined) session.attributes.suburbIndex().get
       else activeSuburb.value
     }
   }
@@ -212,8 +212,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
         blockGrid.lastHoveredDataSourceIndex
       else if(blockGrid.selectedCell.value.isDefined)
         blockGrid.selectedDataSourceIndex
-      else if (session.position.isDefined && activeSuburb.value == session.suburbIndex().get)
-        Some(session.position.get)
+      else if (session.attributes.position.isDefined && activeSuburb.value == session.attributes.suburbIndex().get)
+        Some(session.attributes.position.get)
       else None
     }
 
@@ -278,8 +278,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
   }
 
   def update(): Unit = {
-    suburbGrid.defaultSource.value = session.suburbIndex()
-    blockGrid.defaultSource.value = session.position
+    suburbGrid.defaultSource.value = session.attributes.suburbIndex()
+    blockGrid.defaultSource.value = session.attributes.position
     updateActiveSuburb()
     updateActiveBlock()
     updateSearchStatusLabel()

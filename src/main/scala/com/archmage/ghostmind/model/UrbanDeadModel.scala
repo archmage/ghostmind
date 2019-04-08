@@ -101,7 +101,7 @@ object UrbanDeadModel {
   }
 
   def loadEvents(session: CharacterSession): Unit = {
-    val file = new File(s"$characterDirectory/${session.eventsLogFilename()}")
+    val file = new File(s"$characterDirectory/${session.eventsLogFilename}")
     if(file.exists()) {
       val stream = Source.fromFile(file)
       val string = stream.getLines.mkString
@@ -128,7 +128,7 @@ object UrbanDeadModel {
     val characterDirectoryFile = new File(characterDirectory)
     if(!characterDirectoryFile.exists()) characterDirectoryFile.mkdir()
     val pw = new PrintWriter(new FileOutputStream(
-      new File(s"$characterDirectory/${session.eventsLogFilename()}")))
+      new File(s"$characterDirectory/${session.eventsLogFilename}")))
     pw.write(s"""{"events":$eventsJson}""")
     pw.close()
   }
@@ -298,57 +298,43 @@ object UrbanDeadModel {
         else if(coordinates(0)._1 == 98) x = 99
       }
 
-      session.position = Some(x + y * 100)
+      session.attributes.position = Some(x + y * 100)
     }
     catch {
-      case _: IndexOutOfBoundsException => ()
+      case _: IndexOutOfBoundsException => println("this happened")
     }
   }
 
-  def parseStatusBlock(block: Element, session: CharacterSession): Option[CharacterAttributes] = {
+  def parseStatusBlock(block: Element, session: CharacterSession): Unit = {
     val boldElements = block >> elementList("b")
 
-    var hp: Option[Int] = session.hpValue()
-
-    var xp = 0
-    var ap = 0
-    if(boldElements.length <= 2) {
-      ap = boldElements.last.text.toInt
-    }
+    if(boldElements.length <= 2) session.attributes.ap = Some(boldElements.last.text.toInt)
     else {
       val numbers = boldElements.slice(boldElements.size - 3, boldElements.size)
-      hp = Some(numbers.head.text.toInt)
-      xp = numbers(1).text.toInt
-      ap = numbers(2).text.toInt
+      session.attributes.hp = Some(numbers(0).text.toInt)
+      session.attributes.xp = Some(numbers(1).text.toInt)
+      session.attributes.ap = Some(numbers(2).text.toInt)
     }
 
     // grab the id too?
     val idLink = (block >> element("a")).attr("href")
-    val id = idLink.substring(profileUrl.length).toInt
+    session.attributes.id = Some(idLink.substring(profileUrl.length).toInt)
 
     // TODO examine whether this needs to happen literally every single time
-    val profileResponse = session.getRequest(s"$baseUrl/$profileUrl$id")
+    val profileResponse = session.getRequest(s"$baseUrl/$profileUrl${session.attributes.id.get}")
 
-    if(profileResponse.isEmpty) {
-      // throw some more stuff, who even cares lmao
-      return None
-    }
-
-    val profile = parseProfile(profileResponse.get, session)
-
-    val attributes = Some(CharacterAttributes(id, hp, ap, profile.level, profile.characterClass,
-      xp, profile.description, profile.group))
-    session.attributes = attributes
-    attributes
+    if(profileResponse.isDefined) parseProfile(profileResponse.get, session)
   }
 
-  def parseProfile(doc: Document, session: CharacterSession): CharacterAttributes = {
+  def parseProfile(doc: Document, session: CharacterSession): Unit = {
     val rows = doc >> elementList("tr")
     val data = rows.map { _ >> elementList(".slam") }
     // TODO implement this later
 //    val description = (doc >> element("td .gp")).text
-    val group = data(2)(1).text
-    CharacterAttributes(-1, None, -1, data(1).head.text.toInt, data.head.head.text, -1, "", group)
+
+    session.attributes.level = Some(data(1)(0).text.toInt)
+    session.attributes.characterClass = Some(data(0)(0).text)
+    session.attributes.group = Some(data(2)(1).text)
   }
 
   def parseEnvironmentBlock(block: Element, session: CharacterSession): Unit = {
@@ -423,8 +409,8 @@ object UrbanDeadModel {
   }
 
   def moveAction(session: CharacterSession, x: Int, y: Int): Option[Document] = {
-    if(activeSession.isEmpty || session.position.isEmpty) return None
-    val sessionBlock = Block.blocks(session.position.get)
+    if(session.attributes.position.isEmpty) return None
+    val sessionBlock = Block.blocks(session.attributes.position.get)
     val coordinates =
       (Math.max(0, Math.min(99, sessionBlock.x + Math.signum(x))).toInt,
         Math.max(0, Math.min(99, sessionBlock.y + Math.signum(y))).toInt)

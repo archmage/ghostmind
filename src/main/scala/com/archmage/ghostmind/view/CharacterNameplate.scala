@@ -24,10 +24,10 @@ class CharacterNameplate(var session: Option[CharacterSession] = None) extends V
 
   def update(): Unit = {
     name.text = if(session.isEmpty) "Unknown" else session.get.username
-    val level = if(session.isEmpty || session.get.attributes.isEmpty) "???"
-                else session.get.attributes.get.level
-    val characterClass = if(session.isEmpty || session.get.attributes.isEmpty) "Mystery"
-                         else session.get.attributes.get.characterClass
+    val level = if(session.isEmpty || session.get.attributes.level.isEmpty) "???"
+                else session.get.attributes.level.get
+    val characterClass = if(session.isEmpty || session.get.attributes.characterClass.isEmpty) "Mystery"
+                         else session.get.attributes.characterClass.get
     details.text = s"the Level $level $characterClass"
   }
 

@@ -132,9 +132,9 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           else avatar.image = AssetManager.humanImage
         }
 
-        val groupString = if(session.attributes.isEmpty) "[unknown group]"
+        val groupString = if(session.attributes.group.isEmpty) "[unknown group]"
                           else s"[${
-          if(session.attributes.get.group == "none") "no group" else session.attributes.get.group
+          if(session.attributes.group.get == "none") "no group" else session.attributes.group.get
         }]"
         if(deleteConfirm) {
           id = "RedWarnBox"
@@ -161,12 +161,12 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
         }
 
-        hpBar.text.text = session.hpString()
-        hpBar.bar.progress = session.hpDouble()
-        apBar.text.text = session.apString()
-        apBar.bar.progress = session.apDouble()
-        hitsBar.text.text = session.hitsString()
-        hitsBar.bar.progress = session.hitsDouble()
+        hpBar.text.text = session.attributes.hpString()
+        hpBar.bar.progress = session.attributes.hpDouble()
+        apBar.text.text = session.attributes.apString()
+        apBar.bar.progress = session.attributes.apDouble()
+        hitsBar.text.text = session.attributes.hitsString()
+        hitsBar.bar.progress = session.attributes.hitsDouble()
 
         onMouseClicked = event => {
           if(event.getButton == MouseButton.PRIMARY) session.state.value match {

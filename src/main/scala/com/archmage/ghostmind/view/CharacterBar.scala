@@ -91,14 +91,14 @@ class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
   def update(): Unit =  {
     nameplate.session = Some(session)
     nameplate.update()
-    hpBar.text.text = session.hpString()
-    hpBar.bar.progress = session.hpDouble()
-    apBar.text.text = session.apString()
-    apBar.bar.progress = session.apDouble()
-    xpBar.text.text = session.xpStringLong()
-    xpBar.bar.progress = Math.min(1, session.attributes.get.xp / 100.0)
-    hitsBar.text.text = session.hitsString()
-    hitsBar.bar.progress = session.hitsDouble()
+    hpBar.text.text = session.attributes.hpString()
+    hpBar.bar.progress = session.attributes.hpDouble()
+    apBar.text.text = session.attributes.apString()
+    apBar.bar.progress = session.attributes.apDouble()
+    xpBar.text.text = session.attributes.xpStringLong()
+    xpBar.bar.progress = session.attributes.xpDouble()
+    hitsBar.text.text = session.attributes.hitsString()
+    hitsBar.bar.progress = session.attributes.hitsDouble()
   }
 
   update()
