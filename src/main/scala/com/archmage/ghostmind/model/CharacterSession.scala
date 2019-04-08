@@ -38,7 +38,7 @@ case class CharacterSession(
   var browser: JsoupBrowser = new JsoupBrowser(UrbanDeadModel.useragent)
   val state: ObjectProperty[ConnectivityState] = ObjectProperty(Offline)
   var newEvents: Int = 0
-  var persist: Boolean = false // if this is true, don't make this session persist!
+  var persist: Boolean = true // if this is false, don't make this session persist!
 
   val eventsLogFilename: String = s"$username-log.json"
 
@@ -135,6 +135,7 @@ case class PersistentSession(
   attributes: CharacterAttributes,
   lastHit: Option[String]) {
 
+  // TODO use this: https://bintray.com/meetup/maven/json4s-java-time/0.0.9 to replace the lastHit duplication
   def decode(): CharacterSession = {
     val session = CharacterSession(username, new String(password), attributes)
 
