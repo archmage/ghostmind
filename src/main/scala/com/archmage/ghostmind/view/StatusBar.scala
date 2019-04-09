@@ -46,7 +46,10 @@ class StatusBar extends StackPane {
     style = StatusBar.udConnectivity.value.style
     text = "[ud]"
     focusTraversable = false
-    onAction = _ => Desktop.getDesktop.browse(new URI(UrbanDeadModel.baseUrl))
+    onAction = _ => {
+      Desktop.getDesktop.browse(new URI(UrbanDeadModel.baseUrl))
+      visited = false
+    }
 
 
     StatusBar.udConnectivity.onChange((newValue, _, _) => Platform.runLater(() => style = newValue.value.style))
@@ -57,7 +60,10 @@ class StatusBar extends StackPane {
     style = StatusBar.wikiConnectivity.value.style
     text = "[wiki]"
     focusTraversable = false
-    onAction = _ => Desktop.getDesktop.browse(new URI(UrbanDeadModel.wikiBaseUrl))
+    onAction = _ => {
+      Desktop.getDesktop.browse(new URI(UrbanDeadModel.wikiBaseUrl))
+      visited = false
+    }
 
     StatusBar.wikiConnectivity.onChange((newValue, _, _) => Platform.runLater(() => style = newValue.value.style))
   }

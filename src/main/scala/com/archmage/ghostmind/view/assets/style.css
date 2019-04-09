@@ -127,7 +127,6 @@
 }
 #ConnectivityIndicator {
     -fx-font-weight: bold;
-    -fx-underline: false;
 }
 #MailCount {
     -fx-font-size: 1.1em;

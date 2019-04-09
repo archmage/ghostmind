@@ -9,6 +9,7 @@ import net.ruippeixotog.scalascraper.model.Document
 import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods.parse
+import org.jsoup.HttpStatusException
 
 import scala.io.Source
 
@@ -40,20 +41,26 @@ object Suburb {
 
   val dangerMapStyleRegex = """background:#([0-9A-F]{3})""".r.unanchored
 
-  def loadDangerMap(): Option[Exception] = {
+  def loadDangerMap(): Boolean = {
     val wikiSuburbResponse = try {
       Constants.browser.get(s"${UrbanDeadModel.wikiBaseUrl}/${UrbanDeadModel.wikiSuburbUrl}")
     }
     catch {
-      case uhe: UnknownHostException =>
-        StatusBar.wikiConnectivity.value = Offline
-        return Some(uhe)
+      case uhe: UnknownHostException => return false
+      case hse: HttpStatusException => return false
+      case e: Exception =>
+        e.printStackTrace()
+        return false
     }
+
+    // check if the page response has our danger map table
+    val table = wikiSuburbResponse >?> elementList("table")
+    if(table.isEmpty) return false
 
     StatusBar.wikiConnectivity.value = Online
 
-    val table = (wikiSuburbResponse >> elementList("table"))(1) // bad but whatever
-    val cells = table >> elementList("td")
+
+    val cells = table.get(1) >> elementList("td")
     val dangerLevels: List[DangerLevel] = cells.map { cell =>
 
       val styleText = cell.attr("style")
@@ -73,7 +80,7 @@ object Suburb {
     }
     for(i <- suburbs.indices) suburbs(i).danger = dangerLevels(i)
 
-    None
+    true
   }
 }
 

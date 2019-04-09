@@ -1,6 +1,6 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.{Block, Suburb, UrbanDeadModel}
+import com.archmage.ghostmind.model.{Block, Offline, Suburb, UrbanDeadModel}
 import scalafx.application.Platform
 import scalafx.geometry.Pos
 import scalafx.scene.control.ProgressIndicator
@@ -47,7 +47,7 @@ class MainBorderPane extends BorderPane {
       Suburb.suburbs
 
       StatusBar.status = "querying danger map..."
-      Suburb.loadDangerMap()
+      if(!Suburb.loadDangerMap()) StatusBar.wikiConnectivity.value = Offline
 
       // load blocks
       StatusBar.status = "loading block data..."
