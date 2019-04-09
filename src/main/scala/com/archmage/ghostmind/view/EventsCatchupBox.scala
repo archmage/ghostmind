@@ -1,6 +1,6 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.CharacterSession
+import com.archmage.ghostmind.model.{CharacterSession, Flare}
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
 import scalafx.scene.control.{Label, Separator}
@@ -47,6 +47,18 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox with Updateab
         val eventBox = new HBox {
           alignment = Pos.TopLeft
           children = if(compact) List(icon) else List(icon, textFlow)
+          onMouseEntered = _ => {
+            event.eventType match {
+              case flareEvent: Flare => println(s"[${flareEvent.xOffset}, ${flareEvent.yOffset}]")
+              case _ => ()
+            }
+          }
+          onMouseExited = _ => {
+            event.eventType match {
+              case flareEvent: Flare => MapBox.focusOverride.value = None
+              case _ => ()
+            }
+          }
         }
 
         eventBox.maxWidth <== this.width - 40 // TODO make this less shit

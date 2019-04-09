@@ -13,8 +13,9 @@ import scalafx.scene.layout._
 class CharacterBox(var session: Option[CharacterSession] = None, val index: Int) extends VBox with Updateable {
 
   alignment = Pos.Center
-  prefWidth = 180
-  prefHeight = 252
+  prefWidth = 190
+//  prefHeight = 320
+  spacing = 8
 
   var deleteConfirm = false
   var addCharacterClicked = false
@@ -37,6 +38,12 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     text = "add a character"
     margin = Insets(8, 0, 0, 0)
   }
+
+  val addCharacterBox = new VBox {
+    alignment = Pos.Center
+    children = List(plusIcon, addCharacterLabel)
+  }
+
   var loginBox = new LoginVBox(login, onComplete)
 
   val avatar = new ImageView {
@@ -77,15 +84,35 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     )
   }
 
+  val nameplate = new CharacterNameplate {
+    padding = Insets(0)
+  }
+
   val groupLabel = new Label {
+    id = "GroupText"
+  }
+
+  val suburbLabel = new Label {
     id = "Subtitle"
   }
 
-  val nameplate = new CharacterNameplate
+  val blockLabel = new Label {
+    id = "Subtitle"
+  }
+
+  val coordinatesLabel = new Label {
+    id = "Subtitle"
+  }
+
+  val positionBox = new VBox {
+    alignment = Pos.Center
+    maxWidth = 170
+    prefHeight = 50
+    children = List(suburbLabel, blockLabel, coordinatesLabel)
+  }
 
   val status = new Label {
     id = "ConnectivityStatusText"
-    margin = Insets(8)
   }
 
   val hpBar = new GhostProgressBar {
@@ -96,6 +123,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
   val apBar = new GhostProgressBar {
     bar.id = "ApBar"
     bar.prefWidth = Integer.MAX_VALUE
+    bar
   }
 
   val hitsBar = new GhostProgressBar {
@@ -103,14 +131,14 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
     bar.prefWidth = Integer.MAX_VALUE
   }
 
-  val addCharacterElements = List(plusIcon, addCharacterLabel)
+  val barBox = new VBox(hpBar, apBar, hitsBar)
 
   def update(): Unit = {
     Platform.runLater(() => {
       if(session.isEmpty) {
         id = "DottedGreyBorder"
         if(addCharacterClicked) children = loginBox
-        else children = addCharacterElements
+        else children = addCharacterBox
         onMouseClicked = event => {
           if(event.getButton == MouseButton.PRIMARY) addCharacterClicked = true
           else if(event.getButton == MouseButton.SECONDARY) {
@@ -119,7 +147,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
             loginBox.passwordField.text = ""
           }
           if(addCharacterClicked) children = loginBox
-          else children = addCharacterElements
+          else children = addCharacterBox
         }
       }
 
@@ -132,10 +160,10 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
           else avatar.image = AssetManager.humanImage
         }
 
-        val groupString = if(session.attributes.group.isEmpty) "[unknown group]"
-                          else s"[${
-          if(session.attributes.group.get == "none") "no group" else session.attributes.group.get
-        }]"
+        val groupString = if(session.attributes.group.isEmpty) "(unknown group)"
+                          else s"${
+          if(session.attributes.group.get == "none") "(no group)" else session.attributes.group.get
+        }"
         if(deleteConfirm) {
           id = "RedWarnBox"
           groupLabel.id = "RedWarnText"
@@ -147,9 +175,14 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
             case Connecting => id.value
             case _ => "SolidGreyBorder"
           }
-          groupLabel.id = "Subtitle"
+          groupLabel.id = "GroupText"
           groupLabel.text = groupString
         }
+
+        suburbLabel.text = session.attributes.suburbName()
+        blockLabel.text = session.attributes.blockName()
+        coordinatesLabel.text = session.attributes.coordinatesString()
+
         status.text = session.state.value.toString.toUpperCase
         status.style = session.state.value.style
 
@@ -158,7 +191,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
 
         // to allow the login box to take some time
         if(session.state.value != Connecting) {
-          children = List(topStackPane, nameplate, groupLabel, status, hpBar, apBar, hitsBar)
+          children = List(topStackPane, nameplate, groupLabel, positionBox, status, barBox)
         }
 
         hpBar.text.text = session.attributes.hpString()

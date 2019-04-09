@@ -36,7 +36,7 @@ object Suburb {
     else List[Suburb]()
   }
 
-  val default = Suburb("Blanktown")
+  val blankSuburb = "------"
 
   val dangerMapStyleRegex = """background:#([0-9A-F]{3})""".r.unanchored
 

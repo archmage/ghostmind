@@ -1,15 +1,22 @@
 package com.archmage.ghostmind.view
 
-import com.archmage.ghostmind.model.{Block, CharacterSession, Suburb}
+import java.awt.datatransfer.StringSelection
+import java.awt.{Desktop, Toolkit}
+import java.net.URI
+
+import com.archmage.ghostmind.model.{Block, CharacterSession, Suburb, UrbanDeadModel}
 import scalafx.beans.property.{IntegerProperty, ObjectProperty}
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.Label
+import scalafx.scene.control.{Hyperlink, Label}
 import scalafx.scene.layout.VBox
 import scalafx.scene.paint.Color
 import scalafx.scene.text.{Text, TextAlignment, TextFlow}
 
 object MapBox {
   val coordinatesRegex = """^([0-9]{1,2}) ([0-9]{1,2})$""".r.unanchored
+
+  // mechanism for other places to control the map
+  var focusOverride: ObjectProperty[Option[Int]] = ObjectProperty(None)
 }
 
 class MapBox(val session: CharacterSession) extends VBox with Updateable {
@@ -22,7 +29,7 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
   var activeSuburb = IntegerProperty.apply(0)
 
   // the block to be used for labels
-  var activeBlock: ObjectProperty[Option[Int]] = ObjectProperty.apply(None)
+  var activeBlock: ObjectProperty[Option[Int]] = ObjectProperty(None)
 
   // -- ui stuff --
   val searchField = new GhostField {
@@ -34,15 +41,25 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     text = ""
     style = "-fx-text-fill: -lighter-grey;"
   }
-  val suburbLabel = new Label {
+  val suburbLabel = new Hyperlink {
     id = "BoxHeading"
     text = getSessionSuburb
     margin = Insets(8, 0, 4, 0)
+    focusTraversable = false
+    onAction = _ => {
+      Desktop.getDesktop.browse(new URI(s"${UrbanDeadModel.wikiBaseUrl}/${text.value.replace(" ", "_")}"))
+      visited = false
+    }
   }
   val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
-  val blockText = new Text {
-    fill = Color.White
+  val blockText = new Hyperlink {
     text = getSessionBlock
+    style = "-fx-text-fill: -white;"
+    focusTraversable = false
+    onAction = _ => {
+      Desktop.getDesktop.browse(new URI(s"${UrbanDeadModel.wikiBaseUrl}/${text.value.replace(" ", "_")}"))
+      visited = false
+    }
   }
   val blockLabel = new TextFlow {
     maxWidth = 130
@@ -57,10 +74,19 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     margin = Insets(8, 0, 4, 0)
     children = blockLabel
   }
-  val coordinatesLabel = new Label {
+  val coordinatesLabel = new Hyperlink {
     id = "WhiteText"
     text = getSessionCoordinates
     margin = Insets(4, 0, 0, 0)
+//    style = "-fx-underline: false;"
+    focusTraversable = false
+    onAction = _ => {
+      val copyText = s"${blockText.text.value} ${text.value}"
+      val stringSelection = new StringSelection(copyText)
+      Toolkit.getDefaultToolkit.getSystemClipboard.setContents(stringSelection, null)
+      StatusBar.status = s"""copied "$copyText" to the clipboard"""
+      visited = false
+    }
   }
   val coordinatesDeltaLabel = new Label {
     id = "WhiteText"
@@ -82,6 +108,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     blockGrid.lastHoveredCell.onChange { (_, _, _) => update() }
     blockGrid.selectedCell.onChange { (_, _, _) => update() }
     blockGrid.defaultSource.onChange { (_, _, _) => update() }
+
+    MapBox.focusOverride.onChange { (_, _, _) => update() }
 
     searchField.text.onChange { (_, _, newValue) => onSearch(newValue) }
 
@@ -152,12 +180,12 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
   def getSessionSuburb: String = {
     val suburbIndex = session.attributes.suburbIndex()
     if(suburbIndex.isDefined) Suburb.suburbs(suburbIndex.get).name
-    else "Suburb Name"
+    else Suburb.blankSuburb
   }
 
   def getSessionBlock: String = {
     if(session.attributes.position.isDefined) Block.blocks(session.attributes.position.get).name
-    else "Block Name"
+    else Block.blankBlock
   }
 
   def getSessionCoordinates: String = {
@@ -244,6 +272,7 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
       }
       else suburbGrid.dataSources(activeSuburb.value).getName
     }
+    suburbLabel.disable = suburbLabel.text.value == Suburb.blankSuburb
   }
 
   def updateBlockLabel(): Unit = {
@@ -253,8 +282,9 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
       }
 
       else if(activeBlock.value.isDefined) blockGrid.dataSources(activeBlock.value.get).getName
-      else "------"
+      else Block.blankBlock
     }
+    blockText.disable = blockText.text.value == Block.blankBlock
   }
 
   def updateCoordinatesLabel(): Unit = {
@@ -269,8 +299,9 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
 
     coordinatesLabel.text = {
       if(coordinates.isDefined) s"[${coordinates.get._1}, ${coordinates.get._2}]"
-      else "[--, --]"
+      else Block.blankCoordinates
     }
+    coordinatesLabel.disable = coordinatesLabel.text.value == Block.blankCoordinates
   }
 
   def updateCoordinatesDeltaLabel(): Unit = {

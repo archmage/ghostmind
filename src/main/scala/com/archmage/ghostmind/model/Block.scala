@@ -31,6 +31,9 @@ object Block {
     else List[Block]()
   }
 
+  val blankBlock = "------"
+  val blankCoordinates = "[--, --]"
+
   def search(string: String): List[Block] = {
     val cleanString = string.trim.toLowerCase
     blocks.filter(block => block.name.toLowerCase.contains(cleanString))

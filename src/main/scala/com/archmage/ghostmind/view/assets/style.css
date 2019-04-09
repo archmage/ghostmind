@@ -104,8 +104,13 @@
     -fx-font-size: 1.1em;
     -fx-text-fill: -lighter-grey;
 }
+#GroupText {
+    -fx-font-size: 1.2em;
+    -fx-text-fill: -white-text;
+    -fx-font-weight: bold;
+}
 #RedWarnText {
-    -fx-font-size: 1.1em;
+    -fx-font-size: 1.2em;
     -fx-text-fill: -red-warn;
     -fx-font-weight: bold;
 }

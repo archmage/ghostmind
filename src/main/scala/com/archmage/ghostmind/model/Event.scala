@@ -2,6 +2,7 @@ package com.archmage.ghostmind.model
 
 import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 
+import com.archmage.ghostmind.model.Suburb.dangerMapStyleRegex
 import com.archmage.ghostmind.view.assets.AssetManager
 import net.ruippeixotog.scalascraper.model.Element
 import scalafx.scene.image.Image
@@ -53,7 +54,7 @@ object Event {
       case BiteKill.regex(source, target) => BiteKill(source, target)
       case LightsOn.regex(source) => LightsOn(source)
       case LightsOff.regex(source) => LightsOff(source)
-      case Flare.regex(source) => Flare(source)
+      case Flare.regex(source, coordinates) => Flare(source, coordinates)
       case Refuel.regex(source) => Refuel(source)
       case Extract.regex(source) => Extract(source)
       case Revive.regex(source) => Revive(source)
@@ -72,7 +73,8 @@ object Event {
 
 case class Event(timestamp: ZonedDateTime = LocalDateTime.now().atZone(ZoneId.systemDefault()),
                  content: Element,
-                 eventType: EventType) {
+                 eventType: EventType,
+                 position: Option[Int]) {
   def formatContent(): String = {
     val andAgain = """\.\.\.and again\.""".r.unanchored
     val count = andAgain.findAllIn(content.text).length
@@ -81,7 +83,7 @@ case class Event(timestamp: ZonedDateTime = LocalDateTime.now().atZone(ZoneId.sy
     content.text.replaceAll(" \\(.+?\\)", "").replaceAll(" \\.\\.\\.and again\\.", "") + countString
   }
 
-  def formatOutput(): String = {
+  def formatContentWithTimestamp(): String = {
     s"[${Constants.humanReadableFormatter.format(timestamp)}] ${formatContent()}"
   }
 
@@ -101,17 +103,18 @@ case class Event(timestamp: ZonedDateTime = LocalDateTime.now().atZone(ZoneId.sy
   }
 
   def encode(): PersistentEvent = {
-    PersistentEvent(timestamp.format(Event.dateTimeFormatter), content.innerHtml)
+    PersistentEvent(timestamp.format(Event.dateTimeFormatter), content.innerHtml, position)
   }
 }
 
-case class PersistentEvent(timestamp: String, text: String) {
+case class PersistentEvent(timestamp: String, text: String, position: Option[Int]) {
   def decode(): Event = {
     val element = Constants.browser.parseString(text).body
     Event(
       LocalDateTime.parse(timestamp, Event.dateTimeFormatter).atZone(ZoneId.systemDefault()),
       element,
-      Event.parseEventType(element))
+      Event.parseEventType(element),
+      position)
   }
 }
 
@@ -206,8 +209,29 @@ case class LightsOn(source: String) extends EventType(AssetManager.eventLightsOn
 object LightsOff extends Regex(""" lights went out in (.+?)\.""")
 case class LightsOff(source: String) extends EventType(AssetManager.eventLightsOff)
 
-object Flare extends Regex(""" flare was fired (.+?)\.""")
-case class Flare(source: String) extends EventType(AssetManager.eventFlare)
+// TODO extract the x/y offset
+object Flare extends Regex("""(A flare was fired|.+? fired a flare) ?((?:.+?)?(?: and (?:.+?)?)?)?\.""") {
+  val coordinatesRegex = """([0-9]+) blocks? to the (north|south|east|west)(?: and ([0-9]+) blocks? to the (north|south))?""".r.unanchored
+}
+case class Flare(source: String, coordinates: String) extends EventType(AssetManager.eventFlare) {
+  private var _xOffset: Int = 0
+  private var _yOffset: Int = 0
+
+  val data = Flare.coordinatesRegex.findAllIn(coordinates)
+
+  for(i <- 2 to Math.min(4, data.groupCount) by 2) {
+    val cardinal = data.group(i)
+    if(cardinal == "east" || cardinal == "west") {
+      _xOffset = if(cardinal == "east") data.group(i - 1).toInt else -data.group(i - 1).toInt
+    }
+    else if(cardinal == "north" || cardinal == "south") {
+      _yOffset = if(cardinal == "south") data.group(i - 1).toInt else -data.group(i - 1).toInt
+    }
+  }
+
+  def xOffset: Int = _xOffset
+  def yOffset: Int = _yOffset
+}
 
 object Refuel extends Regex("""(.+?) refuelled the generator\.""")
 case class Refuel(source: String) extends EventType(AssetManager.eventRefuel)

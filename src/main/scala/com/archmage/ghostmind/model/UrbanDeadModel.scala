@@ -269,7 +269,8 @@ object UrbanDeadModel {
         val eventInstance = Event(
           Event.parseTimeText(event.text),
           event,
-          Event.parseEventType(event))
+          Event.parseEventType(event),
+          session.attributes.position)
         session.events.get += eventInstance
       }
       session.newEvents += events.size
@@ -350,7 +351,8 @@ object UrbanDeadModel {
       // add an event to the events thing
       session.events.get += new Event(
         content = Constants.browser.parseString(s"""${session.username} said "$message"""").body,
-        eventType = Speech(session.username, message))
+        eventType = Speech(session.username, message),
+        position = session.attributes.position)
       Some(speechAttempt)
     }
   }
@@ -402,8 +404,8 @@ object UrbanDeadModel {
               case _ => "searched and found nothing."
             }
           }""").body,
-        eventType = eventType
-      )
+        eventType = eventType,
+        position = session.attributes.position)
 //    }
     Some(searchAttempt)
   }

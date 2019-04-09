@@ -124,6 +124,24 @@ case class CharacterAttributes(
     if(position.isEmpty) None
     else Some((position.get / 1000) * 10 + (position.get / 10) % 10)
   }
+
+  def suburbName(): String = {
+    if(position.isDefined) Suburb.suburbs(suburbIndex().get).name
+    else Suburb.blankSuburb
+  }
+
+  def blockName(): String = {
+    if(position.isDefined) Block.blocks(position.get).name
+    else Block.blankBlock
+  }
+
+  def coordinatesString(): String = {
+    if(position.isDefined) {
+      val block = Block.blocks(position.get)
+      s"[${block.x}, ${block.y}]"
+    }
+    else Block.blankCoordinates
+  }
 }
 
 /**
