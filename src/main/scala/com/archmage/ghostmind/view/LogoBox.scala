@@ -8,7 +8,7 @@ import scalafx.scene.layout.VBox
 class LogoBox extends VBox {
 
   alignment = Pos.Center
-  padding = Insets(40)
+  padding = Insets(10)
   spacing = 10
 
   val icon = new ImageView{
