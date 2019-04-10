@@ -7,11 +7,16 @@ import java.net.URI
 import com.archmage.ghostmind.model.{Block, CharacterSession, Suburb, UrbanDeadModel}
 import scalafx.beans.property.{IntegerProperty, ObjectProperty}
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.{Hyperlink, Label}
+import scalafx.scene.control.Label
 import scalafx.scene.layout.VBox
-import scalafx.scene.paint.Color
-import scalafx.scene.text.{Text, TextAlignment, TextFlow}
+import scalafx.scene.text.{TextAlignment, TextFlow}
 
+/**
+  * the map box controller class
+  * contains map and label elements, united by logic
+  *
+  * contains many bugs :(
+  */
 object MapBox {
   val coordinatesRegex = """^([0-9]{1,2}) ([0-9]{1,2})$""".r.unanchored
 
@@ -23,13 +28,15 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
 
   alignment = Pos.TopCenter
   padding = Insets(2, 12, 2, 12) // 2, 5, 2, 5
-//  maxWidth = 169
 
   // the suburb for blockGrid to show
   var activeSuburb = IntegerProperty.apply(0)
 
   // the block to be used for labels
   var activeBlock: ObjectProperty[Option[Int]] = ObjectProperty(None)
+
+  // a total of block matches for each suburb
+  var searchBlockMatchesInSuburb = List.fill(100)(0)
 
   // -- ui stuff --
   val searchField = new GhostField {
@@ -41,25 +48,21 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     text = ""
     style = "-fx-text-fill: -lighter-grey;"
   }
-  val suburbLabel = new Hyperlink {
+  val suburbLabel = new GhostHyperlink {
     id = "BoxHeading"
     text = getSessionSuburb
     margin = Insets(8, 0, 4, 0)
-    focusTraversable = false
-    onAction = _ => {
+    onAction = Some(() => {
       Desktop.getDesktop.browse(new URI(s"${UrbanDeadModel.wikiBaseUrl}/${text.value.replace(" ", "_")}"))
-      visited = false
-    }
+    })
   }
-  val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
-  val blockText = new Hyperlink {
+  val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10)
+  val blockText = new GhostHyperlink {
+    id = "WhiteText"
     text = getSessionBlock
-    style = "-fx-text-fill: -white;"
-    focusTraversable = false
-    onAction = _ => {
+    onAction = Some(() => {
       Desktop.getDesktop.browse(new URI(s"${UrbanDeadModel.wikiBaseUrl}/${text.value.replace(" ", "_")}"))
-      visited = false
-    }
+    })
   }
   val blockLabel = new TextFlow {
     maxWidth = 130
@@ -74,19 +77,17 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     margin = Insets(8, 0, 4, 0)
     children = blockLabel
   }
-  val coordinatesLabel = new Hyperlink {
+  val blockGrid: MapGridView = new MapGridView(Block.blocks, 100)
+  val coordinatesLabel = new GhostHyperlink {
     id = "WhiteText"
     text = getSessionCoordinates
     margin = Insets(4, 0, 0, 0)
-//    style = "-fx-underline: false;"
-    focusTraversable = false
-    onAction = _ => {
+    onAction = Some(() => {
       val copyText = s"${blockText.text.value} ${text.value}"
       val stringSelection = new StringSelection(copyText)
       Toolkit.getDefaultToolkit.getSystemClipboard.setContents(stringSelection, null)
       StatusBar.status = s"""copied "$copyText" to the clipboard"""
-      visited = false
-    }
+    })
   }
   val coordinatesDeltaLabel = new Label {
     id = "WhiteText"
@@ -94,7 +95,6 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     margin = Insets(2, 0, 0, 0)
   }
 
-  val suburbGrid: MapGridView = new MapGridView(Suburb.suburbs, 10)
 
   def init(): Unit = {
     suburbGrid.alignment <== alignment
@@ -109,7 +109,9 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
     blockGrid.selectedCell.onChange { (_, _, _) => update() }
     blockGrid.defaultSource.onChange { (_, _, _) => update() }
 
-    MapBox.focusOverride.onChange { (_, _, _) => update() }
+    MapBox.focusOverride.onChange { (_, _, newValue) => {
+      // TODO do this later
+    }}
 
     searchField.text.onChange { (_, _, newValue) => onSearch(newValue) }
 
@@ -223,7 +225,8 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
 
   def updateActiveSuburb(): Unit = {
     activeSuburb.value = {
-      if(suburbGrid.singleMatch.isDefined) suburbGrid.singleMatch.get
+      if(MapBox.focusOverride.value.isDefined) Block.blocks(MapBox.focusOverride.value.get).getSuburbIndex
+      else if(suburbGrid.singleMatch.isDefined) suburbGrid.singleMatch.get
       else if(blockGrid.singleMatch.isDefined) Block.blocks(blockGrid.singleMatch.get).getSuburbIndex
       else if(suburbGrid.selectedCell.value.isDefined) suburbGrid.selectedCell.value.get
       else if(suburbGrid.lastHoveredCell.value.isDefined) suburbGrid.lastHoveredCell.value.get
@@ -234,12 +237,10 @@ class MapBox(val session: CharacterSession) extends VBox with Updateable {
 
   def updateActiveBlock(): Unit = {
     activeBlock.value = {
-      if(blockGrid.singleMatch.isDefined)
-        Some(blockGrid.singleMatch.get)
-      else if(blockGrid.lastHoveredCell.value.isDefined)
-        blockGrid.lastHoveredDataSourceIndex
-      else if(blockGrid.selectedCell.value.isDefined)
-        blockGrid.selectedDataSourceIndex
+      if(MapBox.focusOverride.value.isDefined) Some(MapBox.focusOverride.value.get)
+      if(blockGrid.singleMatch.isDefined) Some(blockGrid.singleMatch.get)
+      else if(blockGrid.lastHoveredCell.value.isDefined) blockGrid.lastHoveredDataSourceIndex
+      else if(blockGrid.selectedCell.value.isDefined) blockGrid.selectedDataSourceIndex
       else if (session.attributes.position.isDefined && activeSuburb.value == session.attributes.suburbIndex().get)
         Some(session.attributes.position.get)
       else None

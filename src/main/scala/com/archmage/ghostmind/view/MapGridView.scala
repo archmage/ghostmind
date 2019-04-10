@@ -1,12 +1,17 @@
 package com.archmage.ghostmind.view
 
 import javafx.scene.input.MouseButton
+import scalafx.Includes.{at, _}
+import scalafx.animation.Timeline
 import scalafx.beans.property.{BooleanProperty, IntegerProperty, ObjectProperty}
+import scalafx.scene.Node
 import scalafx.scene.effect.ColorAdjust
-import scalafx.scene.layout.{ColumnConstraints, GridPane, RowConstraints}
-import scalafx.scene.shape.Rectangle
+import scalafx.scene.layout.{ColumnConstraints, GridPane, RowConstraints, StackPane}
+import scalafx.scene.paint.Color
+import scalafx.scene.shape.{Circle, Rectangle}
 
 import scala.collection.mutable.ListBuffer
+import scala.language.postfixOps
 
 object MapGridView {
   val cellSize = 14
@@ -17,8 +22,14 @@ object MapGridView {
   val rowConstraint: RowConstraints = new RowConstraints { prefHeight = MapGridView.cellSize + 1 }
   val columnConstraint: ColumnConstraints = new ColumnConstraints { prefWidth = MapGridView.cellSize + 1 }
 
+  // given a cell index (0-99), return that cell's coordinates
   def cellCoordinatesFromIndex(index: Int): (Int, Int) = {
     (index % MapGridView.gridWidth, index / MapGridView.gridHeight)
+  }
+
+  // given a cell's coordinates, return a cell index (0-99)
+  def cellIndexFromCoordinates(x: Int, y: Int): Int = {
+    x + y * MapGridView.gridWidth
   }
 }
 
@@ -34,10 +45,13 @@ class MapGridView(
   // list of cells; should be size() == 100
   var cells = ListBuffer[MapGridCell]()
 
-  // the index (0-99) of the last cell that was hovered
+  // the cell index (0-99) of the last cell that was hovered
   var lastHoveredCell: ObjectProperty[Option[Int]] = ObjectProperty(None)
-  // the index (0-99) of the currently selected cell
+
+  // the cell index (0-99) of the currently selected cell
+  // TODO change this to be a datasource index
   var selectedCell: ObjectProperty[Option[Int]] = ObjectProperty(None)
+
   // the datasources index of the "default" datasource
   var defaultSource: ObjectProperty[Option[Int]] = ObjectProperty(None)
 
@@ -99,8 +113,6 @@ class MapGridView(
         val dataSource = dataSources.lift.apply(
           (cellX + offsetX.value) + dataSourceWidth * (cellY + offsetY.value)).get
         val cell = new MapGridCell(dataSource) {
-          width = MapGridView.cellSize
-          height = MapGridView.cellSize
           onMouseEntered = _ => { lastHoveredCell.value = Some(cellX + MapGridView.gridWidth * cellY) }
         }
 
@@ -174,47 +186,85 @@ class MapGridView(
     selectedCell.value = None
   }
 
-//  def getActiveName: Option[String] = {
-//    if(lastHoveredCell.value.isDefined) Some(cells(lastHoveredCell.value.get).dataSource.value.getName)
-//    else if(singleMatch.isDefined) Some(dataSources(singleMatch.get).getName)
-//    else if(selectedCell.value.isDefined) Some(cells(selectedCell.value.get).dataSource.value.getName)
-//    else None
-//  }
-
   init()
 }
 
 object MapGridCell {
-  val defaultSourceStyle = "-fx-stroke: white; -fx-stroke-width: 2; -fx-stroke-dash-array: 2 1 2 1; -fx-stroke-type: inside;"
+  val defaultSourceStyle = "-fx-stroke: white; -fx-stroke-width: 2; -fx-stroke-dash-array: 2 2 2 2; -fx-stroke-type: inside;"
   val highlightedStyle = "-fx-stroke: #e5b244; -fx-stroke-width: 1; -fx-stroke-type: inside;"
   val selectedStyle = "-fx-stroke: yellow; -fx-stroke-width: 2; -fx-stroke-type: inside;"
 
   val darken = new ColorAdjust
-  darken.brightness = -0.7
-  darken.saturation = -0.7
+  darken.brightness = -0.5
+  darken.saturation = -0.5
 }
 
-class MapGridCell(dataSourceValue: MapGridViewDataSource) extends Rectangle {
-  val dataSource: ObjectProperty[MapGridViewDataSource] = ObjectProperty.apply(dataSourceValue)
-  var highlighted: ObjectProperty[Option[Boolean]] = ObjectProperty.apply(None)
-  var selected = BooleanProperty.apply(false)
-  var defaultSource = BooleanProperty.apply(false)
+class MapGridCell(dataSourceValue: MapGridViewDataSource) extends StackPane {
 
-  width = MapGridView.cellSize
-  height = MapGridView.cellSize
+  val dataSource: ObjectProperty[MapGridViewDataSource] = ObjectProperty.apply(dataSourceValue)
+  val highlighted: ObjectProperty[Option[Boolean]] = ObjectProperty.apply(None)
+  val selected = BooleanProperty.apply(false)
+  val defaultSource = BooleanProperty.apply(false)
+
+  val cell: Rectangle = new Rectangle {
+    width = MapGridView.cellSize
+    height = MapGridView.cellSize
+  }
+
+  var selectedCursorTimeline: Option[Timeline] = None
+
+  def colourStyle(): String = s"-fx-fill: ${dataSource.value.colourStyle()};"
 
   def updateStyling(): Unit = {
-    style = {
-      if(selected.value) s"${colourStyle()} ${MapGridCell.selectedStyle}"
-      else if(highlighted.value.isDefined && highlighted.value.get) s"${colourStyle()} ${MapGridCell.highlightedStyle}"
-      else if(defaultSource.value) s"${colourStyle()} ${MapGridCell.defaultSourceStyle}"
-      else colourStyle()
+    cell.style = {
+//      if(selected.value) s"${colourStyle()} ${MapGridCell.selectedStyle}"
+//      else if(highlighted.value.isDefined && highlighted.value.get) s"${colourStyle()} ${MapGridCell.highlightedStyle}"
+      colourStyle()
     }
 
     if(highlighted.value.isDefined) {
-      effect = if(highlighted.value.get) null else MapGridCell.darken
+      cell.effect = if(highlighted.value.get) null else MapGridCell.darken
     }
-    else effect = null
+    else cell.effect = null
+
+    var childNodes: ListBuffer[Node] = ListBuffer(cell)
+
+    if(selected.value) {
+      val selectedCursor = new Rectangle {
+        width = MapGridView.cellSize
+        height = MapGridView.cellSize
+        fill = Color.Transparent
+        strokeWidth = 2
+      }
+
+      val timeline = new Timeline {
+        cycleCount = Timeline.Indefinite
+        autoReverse = true
+        keyFrames = Seq(
+          at(0 s) { selectedCursor.stroke -> Color.gray(0.7) /* tween Interpolator.EaseBoth */ },
+          at(0.5 s) { selectedCursor.stroke -> Color.White /* tween Interpolator.EaseBoth */ },
+        )
+      }
+      timeline.play()
+      selectedCursorTimeline = Some(timeline)
+      childNodes += selectedCursor
+    }
+    else {
+      if(selectedCursorTimeline.isDefined) selectedCursorTimeline.get.stop()
+      selectedCursorTimeline = None
+    }
+
+    if(defaultSource.value) childNodes += new Circle {
+      radius = 5
+      style = "-fx-fill: red; -fx-stroke: white; -fx-stroke-width: 1.5; -fx-stroke-type: inside"
+    }
+
+    if(highlighted.value.isDefined && highlighted.value.get) childNodes += new Circle {
+      radius = 3
+      style = "-fx-fill: yellow; -fx-stroke: black; -fx-stroke-width: 1; -fx-stroke-type: outside"
+    }
+
+    children = childNodes
   }
 
   dataSource.onChange { (_, _, _) => updateStyling() }
@@ -222,6 +272,4 @@ class MapGridCell(dataSourceValue: MapGridViewDataSource) extends Rectangle {
   selected.onChange { (_, _, _) => updateStyling() }
   defaultSource.onChange { (_, _, _) => updateStyling() }
   updateStyling()
-
-  def colourStyle(): String = s"-fx-fill: ${dataSource.value.colourStyle()};"
 }

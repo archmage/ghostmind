@@ -49,7 +49,10 @@ class EventsCatchupBox(val session: CharacterSession) extends VBox with Updateab
           children = if(compact) List(icon) else List(icon, textFlow)
           onMouseEntered = _ => {
             event.eventType match {
-              case flareEvent: Flare => println(s"[${flareEvent.xOffset}, ${flareEvent.yOffset}]")
+              case flareEvent: Flare =>
+                if(event.position.isDefined) {
+                  MapBox.focusOverride.value = Some(event.position.get + flareEvent.xOffset + flareEvent.yOffset * 100)
+                }
               case _ => ()
             }
           }
