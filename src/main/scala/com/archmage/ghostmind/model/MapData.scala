@@ -7,72 +7,119 @@ import net.ruippeixotog.scalascraper.scraper.ContentExtractors.{element, element
 
 import scala.collection.mutable.ListBuffer
 
+/**
+  * the logic for constructing a MapData instance
+  */
 object MapData {
-  // TODO fix this later
-  def parseStatusBlock(block: Element): Unit = {
-    val boldElements = block >> elementList("b")
+  def parseMapBlock(doc: Document): MapBlock = {
+    MapBlock(doc.body, None)
+  }
 
-    // i don't like defaulting to this without some sort of UI indication that this has happened
-    // maybe make attributes.hp optional and show ??? when None
-    // probably do this later, it's an edge case
-    var hp = 50
+  def parseStatBlock(doc: Document): StatBlock = {
+    StatBlock(doc.body, "", 0, 0, 0, 0)
+  }
 
-    var xp = 0
-    var ap = 0
-    if(boldElements.length <= 2) {
-      ap = boldElements.last.text.toInt
-    }
-    else {
-      val numbers = boldElements.slice(boldElements.size - 3, boldElements.size)
-      hp = numbers.head.text.toInt
-      xp = numbers(1).text.toInt
-      ap = numbers(2).text.toInt
-    }
-    val username = (block >> element("a")).text
+  def parseEnvironmentBlock(doc: Document): EnvironmentBlock = {
+    EnvironmentBlock(doc.body, "")
+  }
 
-    // handle hp/xp fails better
-    // return statblock
+  def parseEventBlock(doc: Document): EventBlock = {
+    EventBlock(doc.body)
+  }
+
+  def parseActionBlock(doc: Document): ActionBlock = {
+    ActionBlock(doc.body)
+  }
+
+  def parseInventoryBlock(doc: Document): InventoryBlock = {
+    InventoryBlock(doc.body, 0)
   }
 
   def parseResponse(response: Document): MapData = {
     // stuff here eventually
 
-    MapData(response, "", 0, 0, 0, 0, None, None, None, "", ListBuffer(), "", "", 0, ListBuffer(), ListBuffer(),
-      ListBuffer(), 0, ListBuffer(), ListBuffer(), "", ListBuffer())
+    MapData(
+      response,
+      parseMapBlock(response),
+      parseStatBlock(response),
+      parseEnvironmentBlock(response),
+      parseEventBlock(response),
+      parseActionBlock(response),
+      parseInventoryBlock(response)
+      )
   }
 }
 
-case class StatBlock (
-  username: String,
-  hp: Option[Int],
-  ap: Option[Int],
-  xp: Option[Int])
-
 // rationalisable form of map.cgi responses
 // TODO add gamemessage
-case class MapData (
+case class MapData(
   response: Document,
+  mapBlock: MapBlock,
+  statBlock: StatBlock,
+  environmentBlock: EnvironmentBlock,
+  eventBlock: EventBlock,
+  actionBlock: ActionBlock,
+  inventoryBlock: InventoryBlock
+)
+
+/** the 3x3 map block used for traversing and positioning */
+case class MapBlock(
+  element: Element, // <table class="c">
+  position: Option[Int]
+  // inside: Option[Boolean]
+
+  // list each block in a size-9 array
+  // each has a name, lit status, ruined status, zombie count
+)
+
+/** the statistics block ("You are Username. You have X HP and Y XP. You have Z AP.") */
+case class StatBlock(
+  element: Element, // <td class="cp"> -> <div class="gt"> (statblock) and <div class="gthome"> (safehouse)
   username: String,
+  id: Int,
   hp: Int,
   ap: Int,
-  xp: Int,
-  location: Int,
-  safehouse: Option[Int],
-  inside: Option[Boolean],
-  barricadeLevel: Option[Int],
-  locationFlavour: String,
-  occupants: ListBuffer[String], // username, profile ID, contact colour, HP
-  radio: Any, // frequency, condition?
-  generator: Any, // health, powered/unpowered, isRunningLow
-  zombieCount: Int,
-  knownZombies: ListBuffer[String], // prolly same data object as occupants, but without HP
-  actions: ListBuffer[String], // no idea how to represent this
-  inventory: ListBuffer[Any], // need an object for items
-  encumberance: Int,
-  dropList: ListBuffer[String], // list of items you could drop; unsure on this
-  targetList: ListBuffer[String], // list of names (corresponding to IDs), and then "zombie"
-  barricadeUrl: String, // randomised per map.cgi hit
-  moveUrls: ListBuffer[String] // randomised per map.cgi hit
-  ) {
+  xp: Int
+  // ignore safehouse for now, it's niche
+)
 
-}
+/** the block telling you what's at your location ("You are at X. Also here is Y.") */
+case class EnvironmentBlock(
+  element: Element, // <td class="gp"> -> <div class="gt">
+  content: String
+  // barricadeLevel: Option[Int],
+  // locationFlavour: String,
+  // occupants: ListBuffer[String], // username, profile ID, contact colour, HP
+  // radio: Any, // frequency, condition?
+  // generator: Any, // health, powered/unpowered, isRunningLow
+  // zombieCount: Int,
+  // knownZombies: ListBuffer[String], // prolly same data object as occupants, but without HP
+
+  // this is going to require a LOT of custom parsing
+  // iterate on this
+)
+
+/** the block for gamemessages and events ("Since your last turn:") */
+case class EventBlock(
+  element: Element, // <p class="gamemessage">
+  // represent "Since your last turn:" here somehow
+)
+
+/** the block for action forms */
+case class ActionBlock(
+  element: Element // <td class="gp"> -> all <form>s, filtering out `?use-` matches
+  // actions: ListBuffer[String], // no idea how to represent this
+  // targetList: ListBuffer[String], // list of names (corresponding to IDs), and then "zombie"
+
+  // parse each action somehow? not sure how to do this tbh
+)
+
+/** the block for inventory items, encumbrance and the drop dropdown */
+case class InventoryBlock(
+  element: Element, // <td class="gp"> -> all <form>s, filtering for `?use-` matches
+  encumbrance: Int // <td class="gp"> -> <p> containing text akin to "You are [0-9]+% encumbered."
+  // inventory: ListBuffer[Any], // need an object for items
+  // dropList: ListBuffer[String], // list of items you could drop; unsure on this
+
+  // a whole bunch of items! this will take some work
+)
