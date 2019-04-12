@@ -1,45 +1,16 @@
 package com.archmage.ghostmind.model
 
-import com.archmage.ghostmind.model.UrbanDeadModel.{baseUrl, parseProfile, profileUrl}
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.{Document, Element}
-import net.ruippeixotog.scalascraper.scraper.ContentExtractors.{element, elementList}
-
-import scala.collection.mutable.ListBuffer
 
 /**
   * the logic for constructing a MapData instance
   */
 object MapData {
-  def parseMapBlock(doc: Document): MapBlock = {
-    MapBlock(doc.body, None)
-  }
-
-  def parseStatBlock(doc: Document): StatBlock = {
-    StatBlock(doc.body, "", 0, 0, 0, 0)
-  }
-
-  def parseEnvironmentBlock(doc: Document): EnvironmentBlock = {
-    EnvironmentBlock(doc.body, "")
-  }
-
-  def parseEventBlock(doc: Document): EventBlock = {
-    EventBlock(doc.body)
-  }
-
-  def parseActionBlock(doc: Document): ActionBlock = {
-    ActionBlock(doc.body)
-  }
-
-  def parseInventoryBlock(doc: Document): InventoryBlock = {
-    InventoryBlock(doc.body, 0)
-  }
 
   def parseResponse(response: Document): MapData = {
-    // stuff here eventually
-
     MapData(
-      response,
       parseMapBlock(response),
       parseStatBlock(response),
       parseEnvironmentBlock(response),
@@ -48,12 +19,99 @@ object MapData {
       parseInventoryBlock(response)
       )
   }
+
+  def parseMapBlock(doc: Document): MapBlock = {
+    // <table class="c">
+    val block = doc.body >> element("table .c")
+
+    val position: Option[Int] = try {
+      val centreRow = (block >> elementList("tr"))(2)
+      val inputs = centreRow >> elementList("input")
+      val hiddenInputs = inputs.filter(element => element.attr("type") == "hidden")
+      val coordinates = hiddenInputs.map { input =>
+        val xy = input.attr("value").split("-")
+        (xy(0).toInt, xy(1).toInt)
+      }
+      var x = 0
+      var y = 0
+
+      if(coordinates.length == 2) {
+        x = coordinates(0)._1 + 1
+        y = coordinates(0)._2
+      }
+      else {
+        y = coordinates(0)._2
+        if(coordinates(0)._1 == 1) x = 0
+        else if(coordinates(0)._1 == 98) x = 99
+      }
+
+      Some(x + y * 100)
+    }
+    catch {
+      case _: IndexOutOfBoundsException => {
+        println("this happened")
+        None
+      }
+    }
+
+    MapBlock(position)
+  }
+
+  def parseStatBlock(doc: Document): StatBlock = {
+    // <td class="cp"> -> <div class="gt"> (statblock) and <div class="gthome"> (safehouse)
+    val block = doc.body >> element(".cp") >> element(".gt")
+
+    var hp: Option[Int] = None
+    var xp: Option[Int] = None
+    var ap: Int = 0
+
+    val boldElements = block >> elementList("b")
+
+    if(boldElements.length <= 2) ap = boldElements.last.text.toInt
+    else {
+      val numbers = boldElements.slice(boldElements.size - 3, boldElements.size)
+      hp = Some(numbers(0).text.toInt)
+      xp = Some(numbers(1).text.toInt)
+      ap = numbers(2).text.toInt
+    }
+
+    // grab the id too?
+    val usernameElement = block >> element("a")
+    val username = usernameElement.text
+    val id = usernameElement.attr("href").substring(UrbanDeadModel.profileUrl.length).toInt
+
+    StatBlock(username, id, hp, xp, ap)
+  }
+
+  def parseEnvironmentBlock(doc: Document): EnvironmentBlock = {
+    EnvironmentBlock("")
+  }
+
+  def parseEventBlock(doc: Document): EventBlock = {
+    EventBlock(None)
+  }
+
+  def parseActionBlock(doc: Document): ActionBlock = {
+    ActionBlock()
+  }
+
+  def parseInventoryBlock(doc: Document): InventoryBlock = {
+    val encumbranceRegex = """You are ([0-9]+)% encumbered\.""".r.unanchored
+    val pElementList = doc >> elementList("p")
+
+    // bit overcomplex, but given an indeterminate number of p-elements, this works well
+    // maybe simplify it in the future
+    val encumbrance = pElementList.foldLeft(0) { (acc, i) => i.text match {
+      case encumbranceRegex(value) => value.toInt
+      case _ => acc
+    }}
+
+    InventoryBlock(encumbrance)
+  }
 }
 
-// rationalisable form of map.cgi responses
-// TODO add gamemessage
+/** a concise data class containing a structured response from `map.cgi` */
 case class MapData(
-  response: Document,
   mapBlock: MapBlock,
   statBlock: StatBlock,
   environmentBlock: EnvironmentBlock,
@@ -63,8 +121,7 @@ case class MapData(
 )
 
 /** the 3x3 map block used for traversing and positioning */
-case class MapBlock(
-  element: Element, // <table class="c">
+case class MapBlock( // <table class="c">
   position: Option[Int]
   // inside: Option[Boolean]
 
@@ -73,19 +130,17 @@ case class MapBlock(
 )
 
 /** the statistics block ("You are Username. You have X HP and Y XP. You have Z AP.") */
-case class StatBlock(
-  element: Element, // <td class="cp"> -> <div class="gt"> (statblock) and <div class="gthome"> (safehouse)
+case class StatBlock( // <td class="cp"> >> <div class="gt"> (statblock) and <div class="gthome"> (safehouse)
   username: String,
   id: Int,
-  hp: Int,
-  ap: Int,
-  xp: Int
+  hp: Option[Int],
+  xp: Option[Int],
+  ap: Int
   // ignore safehouse for now, it's niche
 )
 
 /** the block telling you what's at your location ("You are at X. Also here is Y.") */
-case class EnvironmentBlock(
-  element: Element, // <td class="gp"> -> <div class="gt">
+case class EnvironmentBlock( // <td class="gp"> >> <div class="gt">
   content: String
   // barricadeLevel: Option[Int],
   // locationFlavour: String,
@@ -100,14 +155,13 @@ case class EnvironmentBlock(
 )
 
 /** the block for gamemessages and events ("Since your last turn:") */
-case class EventBlock(
-  element: Element, // <p class="gamemessage">
+case class EventBlock( // <p class="gamemessage">
+  gameMessage: Option[String]
   // represent "Since your last turn:" here somehow
 )
 
 /** the block for action forms */
-case class ActionBlock(
-  element: Element // <td class="gp"> -> all <form>s, filtering out `?use-` matches
+case class ActionBlock( // <td class="gp"> -> all <form>s, filtering out `?use-` matches
   // actions: ListBuffer[String], // no idea how to represent this
   // targetList: ListBuffer[String], // list of names (corresponding to IDs), and then "zombie"
 
@@ -115,8 +169,7 @@ case class ActionBlock(
 )
 
 /** the block for inventory items, encumbrance and the drop dropdown */
-case class InventoryBlock(
-  element: Element, // <td class="gp"> -> all <form>s, filtering for `?use-` matches
+case class InventoryBlock( // <td class="gp"> -> all <form>s, filtering for `?use-` matches
   encumbrance: Int // <td class="gp"> -> <p> containing text akin to "You are [0-9]+% encumbered."
   // inventory: ListBuffer[Any], // need an object for items
   // dropList: ListBuffer[String], // list of items you could drop; unsure on this

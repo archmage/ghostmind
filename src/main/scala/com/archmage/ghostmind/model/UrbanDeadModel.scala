@@ -175,8 +175,6 @@ object UrbanDeadModel {
       return BadCredentials
     }
 
-
-
     // now logged in
     sessions(index) = Some(session)
     session.state.value = Retrieving
@@ -247,6 +245,8 @@ object UrbanDeadModel {
   }
 
   def parseMapCgi(page: Document, session: CharacterSession): Unit = {
+    println(MapData.parseResponse(page))
+
     parseNewEvents(page, session)
 
     val gtElements = page >> elementList(".gt")
