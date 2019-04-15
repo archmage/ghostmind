@@ -11,6 +11,7 @@ import net.ruippeixotog.scalascraper.model.{Document, Element}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.write
+import org.jsoup.HttpStatusException
 import scalafx.collections.ObservableBuffer
 
 import scala.collection.mutable.ListBuffer
@@ -51,6 +52,9 @@ object UrbanDeadModel {
     catch {
       case uhe: UnknownHostException =>
         uhe.printStackTrace()
+        None
+      case hse: HttpStatusException =>
+        hse.printStackTrace()
         None
     }
     if(serverCheck.isDefined) {
@@ -245,7 +249,9 @@ object UrbanDeadModel {
   }
 
   def parseMapCgi(page: Document, session: CharacterSession): Unit = {
-    println(MapData.parseResponse(page))
+
+    session.attributes.lastMapData = Some(MapData.parseResponse(page))
+    println(session.attributes.lastMapData)
 
     parseNewEvents(page, session)
 
@@ -254,6 +260,8 @@ object UrbanDeadModel {
     val statusBlock = gtElements(0)
     val environmentBlock = gtElements(1)
 
+
+    // TODO replace these with MapData versions
     parseMapBlock(mapBlock, session)
     parseStatusBlock(statusBlock, session)
     parseEnvironmentBlock(environmentBlock, session)

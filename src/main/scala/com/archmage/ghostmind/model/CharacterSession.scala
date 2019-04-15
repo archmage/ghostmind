@@ -70,7 +70,7 @@ case class CharacterSession(
     Some(attributes.lastHit.format(CharacterSession.dateTimeFormatter)))
 }
 
-// a snapshot of the character's statistics
+// a snapshot of the character's data (character- and session-specific)
 case class CharacterAttributes(
   var id: Option[Int] = None,
   var hp: Option[Int] = None,
@@ -82,7 +82,8 @@ case class CharacterAttributes(
   var group: Option[String] = None,
   var position: Option[Int] = None,
   var hits: Int = CharacterSession.maxDailyHits,
-  var lastHit: ZonedDateTime = LocalDateTime.MIN.atZone(ZoneId.systemDefault())) {
+  var lastHit: ZonedDateTime = LocalDateTime.MIN.atZone(ZoneId.systemDefault()),
+  var lastMapData: Option[MapData] = None) {
 
   // eventually, have this be aware of Bodybuilding
   def hpMax(): Int = 50

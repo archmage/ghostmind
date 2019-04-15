@@ -9,6 +9,10 @@ import net.ruippeixotog.scalascraper.model.{Document, Element}
   */
 object MapData {
 
+  val inventoryActionRegex = """\?use-""".r.unanchored
+  val encumbranceRegex = """You are ([0-9]+)% encumbered\.""".r.unanchored
+  val itemAdditionalDataRegex = """(\(.+?\))""".r.unanchored
+
   def parseResponse(response: Document): MapData = {
     MapData(
       parseMapBlock(response),
@@ -48,11 +52,23 @@ object MapData {
       Some(x + y * 100)
     }
     catch {
-      case _: IndexOutOfBoundsException => {
+      case _: IndexOutOfBoundsException =>
         println("this happened")
         None
-      }
     }
+
+    // re: parsing the 3x3 map for info...
+    // each <td> element (a cell) has some useful data for us:
+    //
+    // - the hidden <input> element with coordinates (e.g. <input type="hidden" name="v" value="20-82">)
+    // - the `class` attribute on the _visible_ element (e.g. "ml" in <input type="submit" class="ml" value="Tompson Mall">)
+    // - in particular this `class` attribute shows the condition of the block
+    //
+    // md = normal
+    // ml = lit
+    // mr = ruined OR (inside + dark)
+    // ?? = lit and ruined
+
 
     MapBlock(position)
   }
@@ -84,19 +100,50 @@ object MapData {
   }
 
   def parseEnvironmentBlock(doc: Document): EnvironmentBlock = {
+
+    // future data for future parsing:
+
+    // You are standing outside Hinckesman Bank, a tall concrete building plastered with posters. The building's doors
+    // have been left wide open, and you can see that the interior of the building has been ruined.
+    //
+    // Somebody has spraypainted Factory onto a wall.
+    //
+    // There are two dead bodies here.
+
+
     EnvironmentBlock("")
   }
 
   def parseEventBlock(doc: Document): EventBlock = {
-    EventBlock(None)
+    val messageElement = doc.body >?> element(".gamemessage")
+    val message = messageElement.map { _.text }
+
+    EventBlock(message)
   }
 
   def parseActionBlock(doc: Document): ActionBlock = {
-    ActionBlock()
+    // <td class="gp"> -> all <form>s, filtering out `?use-` matches
+    val forms = doc >> element(".gp") >> elementList("form")
+    val actions = forms.filter { form => inventoryActionRegex.findFirstIn(form.attr("action")).isEmpty }
+
+    // get the labels for each
+    val actionLabels = actions.flatMap { action => action >?> attr("value")("input") }
+
+    ActionBlock(actionLabels)
   }
 
   def parseInventoryBlock(doc: Document): InventoryBlock = {
-    val encumbranceRegex = """You are ([0-9]+)% encumbered\.""".r.unanchored
+    // <td class="gp"> -> all <form>s, filtering out `?use-` matches
+    val forms = doc >> element(".gp") >> elementList("form")
+    val items = forms.filter { form => inventoryActionRegex.findFirstIn(form.attr("action")).isDefined }
+    val itemLabels = items.map { item =>
+      val additionalData = item.text match {
+        case itemAdditionalDataRegex(data) => Some(data)
+        case _ => None
+      }
+      s"${item >> attr("value")("input")}${if(additionalData.isDefined) s" ${additionalData.get}" else ""}"
+    }
+
     val pElementList = doc >> elementList("p")
 
     // bit overcomplex, but given an indeterminate number of p-elements, this works well
@@ -106,7 +153,7 @@ object MapData {
       case _ => acc
     }}
 
-    InventoryBlock(encumbrance)
+    InventoryBlock(itemLabels, encumbrance)
   }
 }
 
@@ -162,7 +209,7 @@ case class EventBlock( // <p class="gamemessage">
 
 /** the block for action forms */
 case class ActionBlock( // <td class="gp"> -> all <form>s, filtering out `?use-` matches
-  // actions: ListBuffer[String], // no idea how to represent this
+   actions: List[String], // no idea how to represent this
   // targetList: ListBuffer[String], // list of names (corresponding to IDs), and then "zombie"
 
   // parse each action somehow? not sure how to do this tbh
@@ -170,8 +217,9 @@ case class ActionBlock( // <td class="gp"> -> all <form>s, filtering out `?use-`
 
 /** the block for inventory items, encumbrance and the drop dropdown */
 case class InventoryBlock( // <td class="gp"> -> all <form>s, filtering for `?use-` matches
-  encumbrance: Int // <td class="gp"> -> <p> containing text akin to "You are [0-9]+% encumbered."
-  // inventory: ListBuffer[Any], // need an object for items
+  inventory: List[String],
+  encumbrance: Int, // <td class="gp"> -> <p> containing text akin to "You are [0-9]+% encumbered."
+
   // dropList: ListBuffer[String], // list of items you could drop; unsure on this
 
   // a whole bunch of items! this will take some work
