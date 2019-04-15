@@ -4,7 +4,7 @@ ghostmind is an [Urban Dead](http://urbandead.com/) client with an emphasis on p
 
 # Status
 
-ghostmind is early on in its development, and is not yet ready for public use. When it is ready, builds will be made available through this repo's Releases.
+ghostmind is early on in its development, and is not yet ready for public use. When it is ready, builds will be made available through [this repo's releases](https://github.com/archmage/ghostmind/releases).
 
 # Discord
 
