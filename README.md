@@ -14,6 +14,6 @@ Feel free to come say hi and ask any questions you might have.
 
 # Attributions
 
-current application icon made by freepik: https://www.flaticon.com/free-icon/ghost_1030345
+Current application icon made by freepik: https://www.flaticon.com/free-icon/ghost_1030345
 
-other icon attributions to be listed later once icons are more established
+Other icon attributions to be listed later once icons are more established.

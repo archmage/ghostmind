@@ -81,6 +81,8 @@ case class CharacterAttributes(
   var description: Option[String] = None,
   var group: Option[String] = None,
   var position: Option[Int] = None,
+  var inventory: Option[List[String]] = None, // pull this...
+  var encumbrance: Option[Int] = None,        // ...and this, from MapData
   var hits: Int = CharacterSession.maxDailyHits,
   var lastHit: ZonedDateTime = LocalDateTime.MIN.atZone(ZoneId.systemDefault()),
   var lastMapData: Option[MapData] = None) {

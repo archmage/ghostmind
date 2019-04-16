@@ -14,7 +14,10 @@ object MapData {
   val itemAdditionalDataRegex = """(\(.+?\))""".r.unanchored
 
   def parseResponse(response: Document): MapData = {
+    val metadata = parseMetadata(response)
+
     MapData(
+      metadata,
       parseMapBlock(response),
       parseStatBlock(response),
       parseEnvironmentBlock(response),
@@ -22,6 +25,12 @@ object MapData {
       parseActionBlock(response),
       parseInventoryBlock(response)
       )
+  }
+
+  def parseMetadata(doc: Document): Metadata = {
+    val sleepElement = doc.body >> element("table .c") >/~ validator(element("td"))(_.text == "You are asleep.")
+    val asleep = sleepElement.isRight
+    Metadata(asleep)
   }
 
   def parseMapBlock(doc: Document): MapBlock = {
@@ -68,7 +77,6 @@ object MapData {
     // ml = lit
     // mr = ruined OR (inside + dark)
     // ?? = lit and ruined
-
 
     MapBlock(position)
   }
@@ -148,8 +156,8 @@ object MapData {
 
     // bit overcomplex, but given an indeterminate number of p-elements, this works well
     // maybe simplify it in the future
-    val encumbrance = pElementList.foldLeft(0) { (acc, i) => i.text match {
-      case encumbranceRegex(value) => value.toInt
+    val encumbrance = pElementList.foldLeft(None.asInstanceOf[Option[Int]]) { (acc, i) => i.text match {
+      case encumbranceRegex(value) => Some(value.toInt)
       case _ => acc
     }}
 
@@ -159,6 +167,7 @@ object MapData {
 
 /** a concise data class containing a structured response from `map.cgi` */
 case class MapData(
+  metadata: Metadata,
   mapBlock: MapBlock,
   statBlock: StatBlock,
   environmentBlock: EnvironmentBlock,
@@ -167,9 +176,15 @@ case class MapData(
   inventoryBlock: InventoryBlock
 )
 
+/** info about the map.cgi hit, not any of its data */
+case class Metadata(
+  asleep: Boolean = false
+
+)
+
 /** the 3x3 map block used for traversing and positioning */
 case class MapBlock( // <table class="c">
-  position: Option[Int]
+  position: Option[Int] = None
   // inside: Option[Boolean]
 
   // list each block in a size-9 array
@@ -218,7 +233,7 @@ case class ActionBlock( // <td class="gp"> -> all <form>s, filtering out `?use-`
 /** the block for inventory items, encumbrance and the drop dropdown */
 case class InventoryBlock( // <td class="gp"> -> all <form>s, filtering for `?use-` matches
   inventory: List[String],
-  encumbrance: Int, // <td class="gp"> -> <p> containing text akin to "You are [0-9]+% encumbered."
+  encumbrance: Option[Int], // <td class="gp"> -> <p> containing text akin to "You are [0-9]+% encumbered."
 
   // dropList: ListBuffer[String], // list of items you could drop; unsure on this
 
