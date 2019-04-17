@@ -2,7 +2,7 @@ package com.archmage.ghostmind.model
 
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
-import net.ruippeixotog.scalascraper.model.{Document, Element}
+import net.ruippeixotog.scalascraper.model.Document
 
 /**
   * the logic for constructing a MapData instance
@@ -15,13 +15,14 @@ object MapData {
 
   def parseResponse(response: Document): MapData = {
     val metadata = parseMetadata(response)
+    val mapBlock = parseMapBlock(response)
 
     MapData(
       metadata,
       parseMapBlock(response),
       parseStatBlock(response),
       parseEnvironmentBlock(response),
-      parseEventBlock(response),
+      parseEventBlock(response, mapBlock.position),
       parseActionBlock(response),
       parseInventoryBlock(response)
       )
@@ -122,20 +123,30 @@ object MapData {
     EnvironmentBlock("")
   }
 
-  def parseEventBlock(doc: Document): EventBlock = {
+  def parseEventBlock(doc: Document, position: Option[Int]): EventBlock = {
     val messageElement = doc.body >?> element(".gamemessage")
-    val message = messageElement.map { _.text }
+    val message = messageElement.map(_.text)
 
-    EventBlock(message)
+    val eventsElement = doc >?> element("ul")
+    val events = eventsElement.map(_ >> elementList("li"))
+    val eventInstances = events.map { _.map { event =>
+      Event(
+        Event.parseTimeText(event.text),
+        event,
+        Event.parseEventType(event),
+        position)
+    }}
+
+    EventBlock(message, eventInstances)
   }
 
   def parseActionBlock(doc: Document): ActionBlock = {
     // <td class="gp"> -> all <form>s, filtering out `?use-` matches
     val forms = doc >> element(".gp") >> elementList("form")
-    val actions = forms.filter { form => inventoryActionRegex.findFirstIn(form.attr("action")).isEmpty }
+    val actions = forms.filter(form => inventoryActionRegex.findFirstIn(form.attr("action")).isEmpty)
 
     // get the labels for each
-    val actionLabels = actions.flatMap { action => action >?> attr("value")("input") }
+    val actionLabels = actions.flatMap(_ >?> attr("value")("input"))
 
     ActionBlock(actionLabels)
   }
@@ -143,7 +154,9 @@ object MapData {
   def parseInventoryBlock(doc: Document): InventoryBlock = {
     // <td class="gp"> -> all <form>s, filtering out `?use-` matches
     val forms = doc >> element(".gp") >> elementList("form")
-    val items = forms.filter { form => inventoryActionRegex.findFirstIn(form.attr("action")).isDefined }
+    val items = forms.filter(form => inventoryActionRegex.findFirstIn(form.attr("action")).isDefined)
+
+    // perhaps do some case class mapping of this, rather than just Element -> String
     val itemLabels = items.map { item =>
       val additionalData = item.text match {
         case itemAdditionalDataRegex(data) => Some(data)
@@ -152,14 +165,9 @@ object MapData {
       s"${item >> attr("value")("input")}${if(additionalData.isDefined) s" ${additionalData.get}" else ""}"
     }
 
+    // extract encumbrance
     val pElementList = doc >> elementList("p")
-
-    // bit overcomplex, but given an indeterminate number of p-elements, this works well
-    // maybe simplify it in the future
-    val encumbrance = pElementList.foldLeft(None.asInstanceOf[Option[Int]]) { (acc, i) => i.text match {
-      case encumbranceRegex(value) => Some(value.toInt)
-      case _ => acc
-    }}
+    val encumbrance = pElementList.map(_.text).collectFirst { case encumbranceRegex(value) => value.toInt }
 
     InventoryBlock(itemLabels, encumbrance)
   }
@@ -217,9 +225,9 @@ case class EnvironmentBlock( // <td class="gp"> >> <div class="gt">
 )
 
 /** the block for gamemessages and events ("Since your last turn:") */
-case class EventBlock( // <p class="gamemessage">
-  gameMessage: Option[String]
-  // represent "Since your last turn:" here somehow
+case class EventBlock(
+  gameMessage: Option[String], // <p class="gamemessage">
+  events: Option[List[Event]]
 )
 
 /** the block for action forms */
