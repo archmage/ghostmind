@@ -52,11 +52,7 @@ case class CharacterSession(
   }
 
   def getRequest(url: String): Option[Document] = {
-    // this is Dangerouse
-//    println(url)
-    try {
-      Some(browser.get(url))
-    }
+    try { Some(browser.get(url)) }
     catch {
       case uhe: UnknownHostException =>
         uhe.printStackTrace()

@@ -57,14 +57,7 @@ object UrbanDeadModel {
         hse.printStackTrace()
         None
     }
-    if(serverCheck.isDefined) {
-      // UD server is accessible!
-      StatusBar.udConnectivity.value = Online
-    }
-    else {
-      // UD server is inaccessible :(
-      StatusBar.udConnectivity.value = Offline
-    }
+    StatusBar.udConnectivity.value = if(serverCheck.isDefined) Online else Offline
   }
 
   /** load CharacterSession data from file */
@@ -203,7 +196,7 @@ object UrbanDeadModel {
     }
 
     val data = MapData.parseResponse(mapCgiResponse.get)
-    parseMapCgi(mapCgiResponse.get, session)
+    processMapCgi(mapCgiResponse.get, session)
 
     StatusBar.status = "saving character data..."
     saveEvents(session)
@@ -248,23 +241,22 @@ object UrbanDeadModel {
     else session.getRequest(s"$baseUrl/$mapUrl")
   }
 
-  def parseMapCgi(page: Document, session: CharacterSession): Unit = {
+  def processMapCgi(page: Document, session: CharacterSession): Unit = {
 
-    session.attributes.lastMapData = Some(MapData.parseResponse(page))
-    println(session.attributes.lastMapData)
+    val mapData = MapData.parseResponse(page)
+    session.attributes.lastMapData = Some(mapData)
+    println(mapData)
 
     parseNewEvents(page, session)
 
-    val gtElements = page >> elementList(".gt")
-    val mapBlock = (page >> elementList("table") >> element(".c")).head
-    val statusBlock = gtElements(0)
-    val environmentBlock = gtElements(1)
+    assimilateMapBlock(mapData, session)
+    assimilateStatBlock(mapData, session)
+    assimilateEnvironmentBlock(mapData, session)
+    assimilateInventoryBlock(mapData, session)
 
-
-    // TODO replace these with MapData versions
-    parseMapBlock(mapBlock, session)
-    parseStatusBlock(statusBlock, session)
-    parseEnvironmentBlock(environmentBlock, session)
+    // TODO examine whether this needs to happen literally every single time
+    val profileResponse = session.getRequest(s"$baseUrl/$profileUrl${session.attributes.id.get}")
+    if(profileResponse.isDefined) parseProfile(profileResponse.get, session)
   }
 
   def parseNewEvents(doc: Document, session: CharacterSession): Unit = {
@@ -285,75 +277,41 @@ object UrbanDeadModel {
     }
   }
 
-  def parseMapBlock(block: Element, session: CharacterSession): Unit = {
-    try {
-      val centreRow = (block >> elementList("tr"))(2)
-      val inputs = centreRow >> elementList("input")
-      val hiddenInputs = inputs.filter(element => element.attr("type") == "hidden")
-      val coordinates = hiddenInputs.map { input =>
-        val xy = input.attr("value").split("-")
-        (xy(0).toInt, xy(1).toInt)
-      }
-      var x = 0
-      var y = 0
-
-      if(coordinates.length == 2) {
-        x = coordinates(0)._1 + 1
-        y = coordinates(0)._2
-      }
-      else {
-        y = coordinates(0)._2
-        if(coordinates(0)._1 == 1) x = 0
-        else if(coordinates(0)._1 == 98) x = 99
-      }
-
-      session.attributes.position = Some(x + y * 100)
-    }
-    catch {
-      case _: IndexOutOfBoundsException => println("this happened")
-    }
+  def assimilateMapBlock(data: MapData, session: CharacterSession): Unit = {
+    session.attributes.position = data.mapBlock.position.orElse(session.attributes.position)
   }
 
-  def parseStatusBlock(block: Element, session: CharacterSession): Unit = {
-    val boldElements = block >> elementList("b")
+  def assimilateStatBlock(data: MapData, session: CharacterSession): Unit = {
+    session.attributes.id = session.attributes.id.orElse(Some(data.statBlock.id))
+    session.attributes.hp = data.statBlock.hp.orElse(session.attributes.hp)
+    session.attributes.xp = data.statBlock.xp.orElse(session.attributes.xp)
+    session.attributes.ap = Some(data.statBlock.ap)
+  }
 
-    if(boldElements.length <= 2) session.attributes.ap = Some(boldElements.last.text.toInt)
-    else {
-      val numbers = boldElements.slice(boldElements.size - 3, boldElements.size)
-      session.attributes.hp = Some(numbers(0).text.toInt)
-      session.attributes.xp = Some(numbers(1).text.toInt)
-      session.attributes.ap = Some(numbers(2).text.toInt)
-    }
+  def assimilateEnvironmentBlock(data: MapData, session: CharacterSession): Unit = {
+    session.environment = data.environmentBlock.content.orElse(session.environment)
+  }
 
-    // grab the id too?
-    val idLink = (block >> element("a")).attr("href")
-    session.attributes.id = Some(idLink.substring(profileUrl.length).toInt)
-
-    // TODO examine whether this needs to happen literally every single time
-    val profileResponse = session.getRequest(s"$baseUrl/$profileUrl${session.attributes.id.get}")
-
-    if(profileResponse.isDefined) parseProfile(profileResponse.get, session)
+  def assimilateInventoryBlock(data: MapData, session: CharacterSession): Unit = {
+    session.attributes.inventory = data.inventoryBlock.inventory.orElse(session.attributes.inventory)
+    session.attributes.encumbrance = data.inventoryBlock.encumbrance.orElse(session.attributes.encumbrance)
   }
 
   def parseProfile(doc: Document, session: CharacterSession): Unit = {
     val rows = doc >> elementList("tr")
-    val data = rows.map { _ >> elementList(".slam") }
+    val data = rows.map(_ >> elementList(".slam"))
+
     // TODO implement this later
-//    val description = (doc >> element("td .gp")).text
+    // val description = (doc >> element("td .gp")).text
 
     session.attributes.level = Some(data(1)(0).text.toInt)
     session.attributes.characterClass = Some(data(0)(0).text)
     session.attributes.group = Some(data(2)(1).text)
   }
 
-  def parseEnvironmentBlock(block: Element, session: CharacterSession): Unit = {
-//    println(block.innerHtml)
-    session.environment = Some(block.text)
-  }
-
   // TODO make this reflect what message actually shows up in-game
   def speakAction(message: String, session: CharacterSession): Option[Document] = {
-    if(message.isEmpty || message.length > 250) None
+    if(message.isEmpty || message.length > 250) None // TODO make this not suck
     else {
       val speechAttempt = session.browser.post(s"$baseUrl/$mapUrl", Map("speech" -> message))
       // add an event to the events thing
@@ -361,47 +319,15 @@ object UrbanDeadModel {
         content = Constants.browser.parseString(s"""${session.username} said "$message"""").body,
         eventType = Speech(session.username, message),
         position = session.attributes.position)
+      saveEvents(session)
       Some(speechAttempt)
     }
   }
-
-  val searchFailRegex = """(.+\.)( \(x([0-9]+?)\))?""".r.unanchored
 
   def searchAction(session: CharacterSession): Option[Document] = {
     val searchAttempt = session.browser.post(s"$baseUrl/$searchUrl", Map())
     val message = searchAttempt.body >> element(".gamemessage")
     val eventType = Event.parseEventType(message)
-    // 3min condense
-    // this is busted af
-//    if(session.events.nonEmpty) {
-//      val maybeFail = session.events.get.head
-//      maybeFail.eventType match {
-//        case _: SearchFail =>
-//          if(maybeFail.timestamp.until(
-//            LocalDateTime.now().atZone(ZoneId.systemDefault()),
-//            ChronoUnit.MINUTES) < 3) {
-//            session.events.get.dropRight(1)
-//            val regexResults = searchFailRegex.findAllIn(maybeFail.content.text)
-//            val newContent = s"${regexResults.group(1)} (x${
-//              if(regexResults.groupCount <= 1) 2 else regexResults.group(3) + 1 })"
-//            session.events.get += new Event(
-//              content = Constants.browser.parseString(newContent).body,
-//              eventType = SearchFail()
-//            )
-//          }
-//        case _ => session.events.get += new Event(
-//          content = Constants.browser.parseString(
-//            s"""${session.username} searched and found ${
-//              eventType match {
-//                case find: SearchFind => s"a ${find.item}"
-//                case _ => "nothing"
-//              }
-//            }.""").body,
-//          eventType = eventType
-//        )
-//      }
-//    }
-//    else {
       session.events.get += new Event(
         content = Constants.browser.parseString(
           s"""${session.username} ${
@@ -414,7 +340,7 @@ object UrbanDeadModel {
           }""").body,
         eventType = eventType,
         position = session.attributes.position)
-//    }
+    saveEvents(session)
     Some(searchAttempt)
   }
 
@@ -428,14 +354,6 @@ object UrbanDeadModel {
       s"${coordinates._1}-${coordinates._2}"))
 
     Some(moveAttempt)
-  }
-
-  def tryAndRevive(): Unit = {
-    if(activeSession.isEmpty) return
-    val reviveAttempt = activeSession.get.browser.post(s"$baseUrl/$mapUrl?use-z", Map(
-      "target" -> "target-id-this-is-intentionally-broken"
-    ))
-    println(reviveAttempt.body)
   }
 
   def getNextRollover: ZonedDateTime = {

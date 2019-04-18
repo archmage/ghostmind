@@ -71,7 +71,7 @@ class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
       Future[Option[Document]] {
         UrbanDeadModel.pollMapCgi(session)
       } map { response =>
-        UrbanDeadModel.parseMapCgi(response.get, session)
+        UrbanDeadModel.processMapCgi(response.get, session)
       } map { _ =>
         Platform.runLater(() => {
           UIModel.updateUI()

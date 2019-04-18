@@ -2,16 +2,20 @@ package com.archmage.ghostmind.model
 
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL._
-import net.ruippeixotog.scalascraper.model.Document
+import net.ruippeixotog.scalascraper.model.{Document, Element}
 
 /**
   * the logic for constructing a MapData instance
   */
+// TODO find a better flow for handling cases where `metadata.asleep` causes None to be returned
 object MapData {
 
   val inventoryActionRegex = """\?use-""".r.unanchored
   val encumbranceRegex = """You are ([0-9]+)% encumbered\.""".r.unanchored
   val itemAdditionalDataRegex = """(\(.+?\))""".r.unanchored
+
+  val sleepingSurvivorMessage = "Exhausted, you can go no further."
+  val sleepingZombieMessage = "The exertions of the day have numbed your clouded brain. You stand where you were, swaying slightly."
 
   def parseResponse(response: Document): MapData = {
     val metadata = parseMetadata(response)
@@ -19,29 +23,31 @@ object MapData {
 
     MapData(
       metadata,
-      parseMapBlock(response),
+      mapBlock,
       parseStatBlock(response),
-      parseEnvironmentBlock(response),
+      parseEnvironmentBlock(response, metadata),
       parseEventBlock(response, mapBlock.position),
       parseActionBlock(response),
-      parseInventoryBlock(response)
+      parseInventoryBlock(response, metadata)
       )
   }
 
   def parseMetadata(doc: Document): Metadata = {
-    val sleepElement = doc.body >> element("table .c") >/~ validator(element("td"))(_.text == "You are asleep.")
+    val sleepElement = doc >> element("table .c") >/~ validator(element("td"))(_.text == "You are asleep.")
     val asleep = sleepElement.isRight
     Metadata(asleep)
   }
 
   def parseMapBlock(doc: Document): MapBlock = {
     // <table class="c">
-    val block = doc.body >> element("table .c")
+    val block: Element = doc >> element("table .c")
 
+    // parse position from 3x3 map
     val position: Option[Int] = try {
       val centreRow = (block >> elementList("tr"))(2)
       val inputs = centreRow >> elementList("input")
-      val hiddenInputs = inputs.filter(element => element.attr("type") == "hidden")
+      val hiddenInputs = inputs.filter(_.attr("type") == "hidden")
+
       val coordinates = hiddenInputs.map { input =>
         val xy = input.attr("value").split("-")
         (xy(0).toInt, xy(1).toInt)
@@ -83,14 +89,17 @@ object MapData {
   }
 
   def parseStatBlock(doc: Document): StatBlock = {
-    // <td class="cp"> -> <div class="gt"> (statblock) and <div class="gthome"> (safehouse)
-    val block = doc.body >> element(".cp") >> element(".gt")
+    // <td class="cp"> >> <div class="gt"> (statblock)
+    val statBlock = doc >> element(".cp") >> element(".gt")
+
+    // <td class="cp"> >> <div class="gthome"> (safehouse) - not used atm
+    // val safehouseBlock = doc >> element(".cp") >?> element(".gthome")
 
     var hp: Option[Int] = None
     var xp: Option[Int] = None
     var ap: Int = 0
 
-    val boldElements = block >> elementList("b")
+    val boldElements: List[Element] = statBlock >> elementList("b")
 
     if(boldElements.length <= 2) ap = boldElements.last.text.toInt
     else {
@@ -101,30 +110,25 @@ object MapData {
     }
 
     // grab the id too?
-    val usernameElement = block >> element("a")
+    val usernameElement: Element = statBlock >> element("a")
     val username = usernameElement.text
     val id = usernameElement.attr("href").substring(UrbanDeadModel.profileUrl.length).toInt
 
     StatBlock(username, id, hp, xp, ap)
   }
 
-  def parseEnvironmentBlock(doc: Document): EnvironmentBlock = {
+  def parseEnvironmentBlock(doc: Document, metadata: Metadata): EnvironmentBlock = {
+    // <td class="gp"> >> <div class="gt">
+    val block: Element = doc >> element(".gp") >> element(".gt")
+    val content = if(metadata.asleep ||
+                     block.text == sleepingSurvivorMessage ||
+                     block.text == sleepingZombieMessage) None else Some(block.text)
 
-    // future data for future parsing:
-
-    // You are standing outside Hinckesman Bank, a tall concrete building plastered with posters. The building's doors
-    // have been left wide open, and you can see that the interior of the building has been ruined.
-    //
-    // Somebody has spraypainted Factory onto a wall.
-    //
-    // There are two dead bodies here.
-
-
-    EnvironmentBlock("")
+    EnvironmentBlock(content)
   }
 
   def parseEventBlock(doc: Document, position: Option[Int]): EventBlock = {
-    val messageElement = doc.body >?> element(".gamemessage")
+    val messageElement: Option[Element] = doc >?> element(".gamemessage")
     val message = messageElement.map(_.text)
 
     val eventsElement = doc >?> element("ul")
@@ -151,7 +155,10 @@ object MapData {
     ActionBlock(actionLabels)
   }
 
-  def parseInventoryBlock(doc: Document): InventoryBlock = {
+  // TODO polish this
+  def parseInventoryBlock(doc: Document, metadata: Metadata): InventoryBlock = {
+    if(metadata.asleep) return InventoryBlock(None, None)
+
     // <td class="gp"> -> all <form>s, filtering out `?use-` matches
     val forms = doc >> element(".gp") >> elementList("form")
     val items = forms.filter(form => inventoryActionRegex.findFirstIn(form.attr("action")).isDefined)
@@ -169,7 +176,7 @@ object MapData {
     val pElementList = doc >> elementList("p")
     val encumbrance = pElementList.map(_.text).collectFirst { case encumbranceRegex(value) => value.toInt }
 
-    InventoryBlock(itemLabels, encumbrance)
+    InventoryBlock(Some(itemLabels), encumbrance)
   }
 }
 
@@ -211,7 +218,7 @@ case class StatBlock( // <td class="cp"> >> <div class="gt"> (statblock) and <di
 
 /** the block telling you what's at your location ("You are at X. Also here is Y.") */
 case class EnvironmentBlock( // <td class="gp"> >> <div class="gt">
-  content: String
+  content: Option[String]
   // barricadeLevel: Option[Int],
   // locationFlavour: String,
   // occupants: ListBuffer[String], // username, profile ID, contact colour, HP
@@ -240,7 +247,7 @@ case class ActionBlock( // <td class="gp"> -> all <form>s, filtering out `?use-`
 
 /** the block for inventory items, encumbrance and the drop dropdown */
 case class InventoryBlock( // <td class="gp"> -> all <form>s, filtering for `?use-` matches
-  inventory: List[String],
+  inventory: Option[List[String]],
   encumbrance: Option[Int], // <td class="gp"> -> <p> containing text akin to "You are [0-9]+% encumbered."
 
   // dropList: ListBuffer[String], // list of items you could drop; unsure on this

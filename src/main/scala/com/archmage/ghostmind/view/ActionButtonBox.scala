@@ -5,31 +5,31 @@ import javafx.event.{ActionEvent, EventHandler}
 import net.ruippeixotog.scalascraper.model.Document
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.Button
+import scalafx.scene.control.{Button, Label}
 import scalafx.scene.layout.{FlowPane, HBox, Priority, VBox}
+import scalafx.scene.paint.Color
+import scalafx.scene.text.{Text, TextFlow}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ActionButtonBox(session: CharacterSession) extends FlowPane {
+class ActionButtonBox(session: CharacterSession) extends VBox with Updateable {
   alignment = Pos.TopLeft
   padding = Insets(10)
-  hgap = 5
-  vgap = 5
-  hgrow = Priority.Always
+  spacing = 5
 
   val speechClosure: EventHandler[ActionEvent] = _ => speech()
   val searchClosure: EventHandler[ActionEvent] = _ => search()
 
   val speechField = new GhostField {
     hgrow = Priority.Always
-    prefWidth = 300
+    prefWidth = 290
     promptText = "say something"
     onAction = speechClosure
   }
 
   val speechSubmitButton = new Button {
-    text = "speak your mind"
+    text = "say"
     onAction = speechClosure
   }
 
@@ -41,11 +41,11 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
   // TODO disable ones that won't do anything
   val movementButtons = List(
     (-1, -1, "NW"), (0, -1, "N"), (1, -1, "NE"),
-    (-1, 0, "W"), (0, 0, "."), (1, 0, "E"),
+    (-1, 0, "W"), (0, 0, ""), (1, 0, "E"),
     (-1, 1, "SW"), (0, 1, "S"), (1, 1, "SE")
   ).map { data => new Button {
     text = data._3
-    prefWidth = 45
+    prefWidth = 50
     focusTraversable = false
     onAction = _ => move(data._1, data._2)
     // disable = (if data coords + session.coords is outside bounds!)
@@ -66,7 +66,7 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
     Future[Option[Document]] {
       action.apply()
     } map { response =>
-      UrbanDeadModel.parseMapCgi(response.get, session)
+      UrbanDeadModel.processMapCgi(response.get, session)
     } map { _ =>
       Platform.runLater(() => {
         UIModel.updateUI()
@@ -92,5 +92,38 @@ class ActionButtonBox(session: CharacterSession) extends FlowPane {
       () => UrbanDeadModel.moveAction(session, x, y))
   }
 
-  children = List(searchButton, speechField, speechSubmitButton, movementButtonsBox)
+  val inventoryText = new TextFlow {
+    children = new Text {
+      fill = Color.White
+      text = session.attributes.inventory match {
+        case Some(inventory) => s"inventory: ${inventory.toString()}"
+        case None => "(no inventory data found)"
+      }
+    }
+  }
+
+  val encumbranceText = new Label {
+    id = "WhiteText"
+    text = session.attributes.encumbrance match {
+      case Some(encumbrance) => s"encumbrance: $encumbrance%"
+      case None => "(no encumbrance data found)"
+    }
+  }
+
+  val mainFlowPane = new FlowPane {
+    hgap = 5
+    vgap = 5
+    children = List(new HBox(speechField, speechSubmitButton), searchButton)
+  }
+
+  val actionContainer = new HBox {
+    spacing = 5
+    children = List(movementButtonsBox, mainFlowPane)
+  }
+
+  children = List(actionContainer, inventoryText, encumbranceText)
+
+  def update(): Unit = {
+    // TODO implement this
+  }
 }
