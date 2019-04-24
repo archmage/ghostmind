@@ -1,4 +1,4 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
 import javafx.scene.input.MouseButton
 import scalafx.Includes.{at, _}

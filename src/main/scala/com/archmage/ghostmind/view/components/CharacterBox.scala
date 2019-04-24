@@ -1,7 +1,8 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
 import com.archmage.ghostmind.model._
 import com.archmage.ghostmind.view.assets.AssetManager
+import com.archmage.ghostmind.view._
 import javafx.scene.input.MouseButton
 import scalafx.Includes._
 import scalafx.application.Platform
@@ -155,7 +156,7 @@ class CharacterBox(var session: Option[CharacterSession] = None, val index: Int)
         val session = this.session.get
 
         if (avatar.image.value == null) {
-          val stream = getClass.getResourceAsStream(s"assets/${session.username}.png")
+          val stream = AssetManager.getClass.getResourceAsStream(s"avatars/${session.username}.png")
           if(stream != null) avatar.image = new Image(stream)
           else avatar.image = AssetManager.humanImage
         }

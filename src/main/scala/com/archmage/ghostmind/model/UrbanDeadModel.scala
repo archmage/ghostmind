@@ -179,10 +179,6 @@ object UrbanDeadModel {
     StatusBar.status = "loading contacts..."
     session.contacts = Some(parseContactList(contactsResponse.get, session))
 
-    // return to this later
-    //      StatusBar.status = "loading skills..."
-    //      val skillsDoc = session.getRequest(s"$baseUrl/$skillsUrl")
-
     StatusBar.status = "loading events log..."
     loadEvents(session)
 

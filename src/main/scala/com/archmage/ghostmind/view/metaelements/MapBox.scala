@@ -1,10 +1,12 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.metaelements
 
 import java.awt.datatransfer.StringSelection
 import java.awt.{Desktop, Toolkit}
 import java.net.URI
 
 import com.archmage.ghostmind.model.{Block, CharacterSession, Suburb, UrbanDeadModel}
+import com.archmage.ghostmind.view._
+import com.archmage.ghostmind.view.components.{GhostField, GhostHyperlink, MapGridView, MapGridViewDataSource}
 import scalafx.beans.property.{IntegerProperty, ObjectProperty}
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label

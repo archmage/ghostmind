@@ -3,7 +3,8 @@ package com.archmage.ghostmind.model
 import java.io.File
 import java.net.UnknownHostException
 
-import com.archmage.ghostmind.view.{MapGridViewDataSource, StatusBar}
+import com.archmage.ghostmind.view.StatusBar
+import com.archmage.ghostmind.view.components.MapGridViewDataSource
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.model.Document
 import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList

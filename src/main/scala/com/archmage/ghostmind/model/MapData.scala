@@ -243,6 +243,10 @@ case class ActionBlock( // <td class="gp"> -> all <form>s, filtering out `?use-`
   // targetList: ListBuffer[String], // list of names (corresponding to IDs), and then "zombie"
 
   // parse each action somehow? not sure how to do this tbh
+  // TODO model actions in their own case class, along with an "action button" for the UI
+  // TODO combine model actions into procedurally generated action buttons
+  // TODO apply the same architecture to items
+  // TODO work out how to model targets and weapons ("with X weapon" dropdown)
 )
 
 /** the block for inventory items, encumbrance and the drop dropdown */

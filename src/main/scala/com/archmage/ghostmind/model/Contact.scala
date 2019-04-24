@@ -1,9 +1,5 @@
 package com.archmage.ghostmind.model
 
-object Contact {
-
-}
-
 case class Contact(
   name: String,
   group: String,
@@ -11,4 +7,5 @@ case class Contact(
   level: Int,
   xp: Int,
   id: Int = 0,
-  colour: Int = 0)
+  colour: Int = 0
+)

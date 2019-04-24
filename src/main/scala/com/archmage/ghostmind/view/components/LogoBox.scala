@@ -1,5 +1,6 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
+import com.archmage.ghostmind.view.assets.AssetManager
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
 import scalafx.scene.image.{Image, ImageView}
@@ -12,7 +13,7 @@ class LogoBox extends VBox {
   spacing = 10
 
   val icon = new ImageView{
-    image = new Image(getClass.getResourceAsStream("assets/ghost.png"))
+    image = AssetManager.ghostImage
     fitWidth = 80
     fitHeight = 80
   }

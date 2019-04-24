@@ -1,5 +1,7 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.metaelements
 
+import com.archmage.ghostmind.view.Updateable
+import com.archmage.ghostmind.view.components.CharacterBox
 import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.layout.HBox

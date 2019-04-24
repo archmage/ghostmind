@@ -1,15 +1,16 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
+import com.archmage.ghostmind.view.assets.AssetManager
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
-import scalafx.scene.image.{Image, ImageView}
+import scalafx.scene.image.ImageView
 import scalafx.scene.layout.StackPane
 
 class MailIcon extends StackPane {
   alignment = Pos.TopLeft
 
   val icon = new ImageView {
-    image = new Image(getClass.getResourceAsStream("assets/mail.png"))
+    image = AssetManager.mailImage
     preserveRatio = true
     fitWidth = 30
   }

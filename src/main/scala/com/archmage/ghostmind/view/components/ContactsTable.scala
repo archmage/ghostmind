@@ -1,4 +1,4 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
 import com.archmage.ghostmind.model.{Contact, UrbanDeadModel}
 import scalafx.beans.property.{ObjectProperty, StringProperty}

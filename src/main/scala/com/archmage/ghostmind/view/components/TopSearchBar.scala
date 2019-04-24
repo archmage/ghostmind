@@ -1,4 +1,4 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.{Button, TextField}

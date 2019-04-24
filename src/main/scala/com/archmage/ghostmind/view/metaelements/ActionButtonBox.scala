@@ -1,6 +1,8 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.metaelements
 
 import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
+import com.archmage.ghostmind.view.components.GhostField
+import com.archmage.ghostmind.view.{StatusBar, UIModel, Updateable}
 import javafx.event.{ActionEvent, EventHandler}
 import net.ruippeixotog.scalascraper.model.Document
 import scalafx.application.Platform
@@ -92,23 +94,7 @@ class ActionButtonBox(session: CharacterSession) extends VBox with Updateable {
       () => UrbanDeadModel.moveAction(session, x, y))
   }
 
-  val inventoryText = new TextFlow {
-    children = new Text {
-      fill = Color.White
-      text = session.attributes.inventory match {
-        case Some(inventory) => s"inventory: ${inventory.toString()}"
-        case None => "(no inventory data found)"
-      }
-    }
-  }
-
-  val encumbranceText = new Label {
-    id = "WhiteText"
-    text = session.attributes.encumbrance match {
-      case Some(encumbrance) => s"encumbrance: $encumbrance%"
-      case None => "(no encumbrance data found)"
-    }
-  }
+  val inventoryBox = new InventoryBox(session)
 
   val mainFlowPane = new FlowPane {
     hgap = 5
@@ -121,9 +107,9 @@ class ActionButtonBox(session: CharacterSession) extends VBox with Updateable {
     children = List(movementButtonsBox, mainFlowPane)
   }
 
-  children = List(actionContainer, inventoryText, encumbranceText)
+  children = List(actionContainer, inventoryBox)
 
   def update(): Unit = {
-    // TODO implement this
+    inventoryBox.update()
   }
 }

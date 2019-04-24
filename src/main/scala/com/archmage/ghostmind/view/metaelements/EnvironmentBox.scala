@@ -1,6 +1,7 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.metaelements
 
 import com.archmage.ghostmind.model.CharacterSession
+import com.archmage.ghostmind.view.Updateable
 import scalafx.geometry.Insets
 import scalafx.scene.layout.VBox
 import scalafx.scene.paint.Color

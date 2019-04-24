@@ -4,12 +4,14 @@ import scalafx.scene.image.Image
 
 object AssetManager {
   /*
-  hashmap
-  have it scan the directory upon calling a function
-  make a hashmap of files and filenames
-  i'll do it later lmao
+   * hashmap
+   * have it scan the directory upon calling a function
+   * make a hashmap of files and filenames
+   * i'll do it later lmao
    */
+  // TODO make this loading async
 
+  val ghostImage = new Image(getClass.getResourceAsStream("ghost.png"))
   val humanImage = new Image(getClass.getResourceAsStream("human-icon.png"))
   val plusImage = new Image(getClass.getResourceAsStream("plus.png"))
   val mailImage = new Image(getClass.getResourceAsStream("mail.png"))

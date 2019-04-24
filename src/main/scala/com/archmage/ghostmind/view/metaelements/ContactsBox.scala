@@ -1,5 +1,6 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.metaelements
 
+import com.archmage.ghostmind.view.components.{ContactsTable, GhostField}
 import scalafx.geometry.Pos
 import scalafx.scene.layout.VBox
 

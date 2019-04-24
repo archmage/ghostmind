@@ -1,6 +1,9 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.metaelements
 
 import com.archmage.ghostmind.model.{CharacterSession, UrbanDeadModel}
+import com.archmage.ghostmind.view._
+import com.archmage.ghostmind.view.assets.AssetManager
+import com.archmage.ghostmind.view.components.{CharacterNameplate, GhostProgressBar}
 import net.ruippeixotog.scalascraper.model.Document
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
@@ -18,13 +21,10 @@ class CharacterBar(val session: CharacterSession) extends HBox with Updateable {
   padding = Insets(5)
 
   val avatar = new ImageView {
-    try {
-      image = new Image(getClass.getResourceAsStream(s"assets/${session.username}.png"))
-    }
-    catch {
-      case _: NullPointerException =>
-        image = new Image(getClass.getResourceAsStream("assets/human-icon.png"))
-    }
+    val stream = AssetManager.getClass.getResourceAsStream(s"avatars/${session.username}.png")
+    if(stream != null) image = new Image(stream)
+    else image = AssetManager.humanImage
+
     fitWidth = 50
     fitHeight = 50
   }

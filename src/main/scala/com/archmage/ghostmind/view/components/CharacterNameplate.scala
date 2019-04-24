@@ -1,6 +1,7 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
 import com.archmage.ghostmind.model.CharacterSession
+import com.archmage.ghostmind.view.Updateable
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.control.Label
 import scalafx.scene.layout.VBox

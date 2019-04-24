@@ -1,6 +1,8 @@
 package com.archmage.ghostmind.view
 
 import com.archmage.ghostmind.model.{Block, Offline, Suburb, UrbanDeadModel}
+import com.archmage.ghostmind.view.components.{CharacterBox, LogoBox}
+import com.archmage.ghostmind.view.metaelements.{ActionButtonBox, CharacterBar, CharactersPane, EnvironmentBox, EventsCatchupBox, MapBox}
 import scalafx.application.Platform
 import scalafx.geometry.Pos
 import scalafx.scene.control.ProgressIndicator
@@ -115,12 +117,14 @@ class MainBorderPane extends BorderPane {
     })
   }
 
+  // TODO debug this taking a while
   def update(): Unit = {
     charactersPane.update()
     sessionBar.update()
     mapBox.update()
     eventsCatchupBox.update()
     environmentBox.update()
+    actionButtonBox.update()
   }
 
   init()

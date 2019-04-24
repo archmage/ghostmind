@@ -1,6 +1,8 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.metaelements
 
 import com.archmage.ghostmind.model.{CharacterSession, Flare}
+import com.archmage.ghostmind.view.Updateable
+import com.archmage.ghostmind.view.components.GhostScrollPane
 import scalafx.geometry.{Insets, Pos}
 import scalafx.scene.Node
 import scalafx.scene.control.{Label, Separator}

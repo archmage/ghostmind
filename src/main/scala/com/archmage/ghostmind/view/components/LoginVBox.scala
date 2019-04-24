@@ -1,10 +1,10 @@
-package com.archmage.ghostmind.view
+package com.archmage.ghostmind.view.components
 
-import com.archmage.ghostmind.model.{LoginOutcome, Success}
+import com.archmage.ghostmind.model.LoginOutcome
 import javafx.event.{ActionEvent, EventHandler}
 import scalafx.application.Platform
 import scalafx.geometry.{Insets, Pos}
-import scalafx.scene.control.{Button, Label, PasswordField, ProgressIndicator}
+import scalafx.scene.control.{Button, PasswordField, ProgressIndicator}
 import scalafx.scene.layout.VBox
 
 class LoginVBox(onSubmit: (String, String) => LoginOutcome, onComplete: LoginOutcome => Unit) extends VBox {

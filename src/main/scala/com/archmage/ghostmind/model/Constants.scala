@@ -13,19 +13,41 @@ object Constants {
   val rng = new Random()
 
   val sessionQuotes = List(
-    "expand your horizons",
+    // positive
     "open your mind",
+    "expand your horizons",
+
+    "brave the darkness",
+    "disavow your nightmares",
+
+    "befriend anomalies",
+    "embrace your quirks",
+
+    "prepare for the future",
+    "coordinate and conquer",
+
+    "sequence your acts",
     "advance your agendas",
+
+    "victory is within your reach",
+    "defeat was never a possibility",
+
+    // negative
     "be wary of shadows",
     "fear the great beyond",
+
     "ambience is bliss",
-    "disavow your nightmares",
     "violence is unforgiving",
-    "among friends, mysteries linger",
-    "brave the darkness",
-    "coordinate and conquer",
-    "best be prepared for what lies ahead",
-    "befriend anomalies",
-    "embrace your quirks"
+
+    // ghosts??
+    "the ghosts are here to help",
+    "the ghosts are your friends",
+
+    "safety among spectres",
+    "hidden voices offer guidance",
+
+    // misc
+    "ambience abound",
+    "mysteries seeped in silence"
   )
 }
